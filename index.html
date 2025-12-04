@@ -32,6 +32,10 @@
   .small{font-size:13px;padding:6px 8px}
   .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
   .title{font-size:18px;font-weight:700}
+  .en-block{background:#f3f7ff;padding:8px;margin-top:8px;border-radius:6px;border:1px solid #dbeafe}
+  .toggle-en{cursor:pointer;background:transparent;border:0;color:#0b74ff;font-weight:600}
+  .meta-row{display:flex;gap:10px;align-items:center}
+  .number-badge{background:#eef2ff;color:#0b74ff;padding:4px 8px;border-radius:6px;font-weight:700}
 </style>
 </head>
 <body>
@@ -126,86 +130,74 @@
 </div>
 
 <script>
-/* ---------------- State ---------------- */
+/* --------------- State --------------- */
 const STORAGE_KEY = 'mcq_full_v1';
 let questions = []; // newest first
 let qCounter = 1;
 
-/* DOM helpers */
+/* DOM helper */
 const $ = id => document.getElementById(id);
 
-/* util */
+/* utils */
 function uid(){ return 'q'+(Date.now().toString(36))+(Math.random().toString(36).slice(2,6)); }
 function isHindi(s){ return /[\u0900-\u097F]/.test(s||''); }
 function readFile(input){ return new Promise(res=>{ const f = input && input.files && input.files[0]; if(!f) return res(null); const r = new FileReader(); r.onload = ()=> res({name:f.name,type:f.type,dataURL:r.result}); r.readAsDataURL(f); }); }
-
-/* normalize newlines: handle literal \n or /n pasted in JSON */
-function normalizeNewlines(s){
-  if(s==null) return '';
-  // convert escaped \\n to actual newline, convert literal /n to newline as well
-  return String(s).replace(/\\n/g, '\n').replace(/\/n/g, '\n');
-}
-
-/* xml escaping for single text node */
+function normalizeNewlines(s){ if(s==null) return ''; return String(s).replace(/\\n/g,'\n').replace(/\/n/g,'\n'); }
 function xmlEscape(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* For Word XML: build w:r blocks that preserve line breaks */
-function xmlRunsWithBreaks(s){
-  if(s==null) return '';
-  const parts = String(s).split('\n');
-  return parts.map((p,idx)=>{
-    const t = xmlEscape(p);
-    return `<w:r><w:t xml:space="preserve">${t}</w:t></w:r>` + (idx < parts.length-1 ? `<w:r><w:br/></w:r>` : '');
-  }).join('');
-}
-
-/* load/save */
+/* save/load */
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){ const obj = JSON.parse(raw); questions = obj.questions || []; qCounter = obj.qCounter || (questions.length+1); }
+    if(raw){
+      const obj = JSON.parse(raw);
+      questions = obj.questions || [];
+      qCounter = obj.qCounter || (questions.length+1);
+    }
   }catch(e){ console.warn(e); questions=[]; }
   renderList();
 }
 function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({questions,qCounter})); }catch(e){ console.warn(e); } }
 
-/* snapshot history helpers */
+/* history */
 function pushHistory(q){
   q.history = q.history || [];
-  const snap = JSON.stringify({question:q.question,option:[...q.option],answer:q.answer,solution:q.solution,questionImg:q.questionImg,optionImg:q.optionImg,solutionImg:q.solutionImg});
+  const snap = JSON.stringify({question:q.question,option:[...q.option],answer:q.answer,solution:q.solution,questionImg:q.questionImg,optionImg:q.optionImg,solutionImg:q.solutionImg,questionEn:q.questionEn,optionEn:q.optionEn,solutionEn:q.solutionEn});
   if(q.history[q.history.length-1] !== snap) q.history.push(snap);
   if(q.history.length>50) q.history.shift();
-  q.redo = []; // clear redo on new action
+  q.redo = [];
 }
 
-/* Add question */
+/* Add */
 $('addBtn').addEventListener('click', async ()=>{
-  const questionTextRaw = $('question').value;
-  const questionText = normalizeNewlines(questionTextRaw).trim();
+  const rawQ = $('question').value;
+  const questionText = normalizeNewlines(rawQ).trim();
   if(!questionText){ alert('Question डालो'); return; }
   const qImg = await readFile($('questionImg'));
   const imgs = [await readFile($('imgA')), await readFile($('imgB')), await readFile($('imgC')), await readFile($('imgD'))];
-  const optA = normalizeNewlines($('optA').value || '').trim();
-  const optB = normalizeNewlines($('optB').value || '').trim();
-  const optC = normalizeNewlines($('optC').value || '').trim();
-  const optD = normalizeNewlines($('optD').value || '').trim();
+  const optA = normalizeNewlines($('optA').value||'').trim();
+  const optB = normalizeNewlines($('optB').value||'').trim();
+  const optC = normalizeNewlines($('optC').value||'').trim();
+  const optD = normalizeNewlines($('optD').value||'').trim();
+
   const ent = {
     id: uid(),
+    no: qCounter, // persistent question number
     module: $('module').value.trim() || 'General',
     question: questionText,
     questionImg: qImg,
-    option: [optA, optB, optC, optD],
+    option: [optA,optB,optC,optD],
     optionImg: imgs,
     answer: $('answer').value.trim(),
-    solution: normalizeNewlines($('solution').value || '').trim(),
+    solution: normalizeNewlines($('solution').value||'').trim(),
     solutionImg: await readFile($('solutionImg')),
     pm: $('pm').value || '1',
     nm: $('nm').value || '0',
     language: $('language').value || (isHindi(questionText) ? 'hi' : 'en'),
-    history: [],
-    redo: [],
-    // translations
-    questionEn: null, optionEn: [null,null,null,null], solutionEn: null
+    history: [], redo: [],
+    questionEn: null,
+    optionEn: [null,null,null,null],
+    solutionEn: null
   };
   pushHistory(ent);
   questions.unshift(ent);
@@ -213,14 +205,13 @@ $('addBtn').addEventListener('click', async ()=>{
   saveState(); renderList(); clearForm();
 });
 
-/* clear form */
+/* clear */
 function clearForm(){
   $('module').value=''; $('question').value=''; $('questionImg').value='';
   $('optA').value=''; $('optB').value=''; $('optC').value=''; $('optD').value='';
   $('imgA').value=''; $('imgB').value=''; $('imgC').value=''; $('imgD').value='';
   $('answer').value=''; $('solution').value=''; $('solutionImg').value='';
-  $('pm').value='1'; $('nm').value='0';
-  $('language').value='';
+  $('pm').value='1'; $('nm').value='0'; $('language').value='';
 }
 
 /* render list */
@@ -229,16 +220,19 @@ function renderList(){
   if(!questions.length){ list.innerHTML = '<div class="muted">No questions added.</div>'; return; }
   questions.forEach((q, index)=>{
     const card = document.createElement('div'); card.className='card';
-    const hdr = document.createElement('div'); hdr.style.display='flex'; hdr.style.justifyContent='space-between';
+
+    // header
+    const hdr = document.createElement('div'); hdr.style.display='flex'; hdr.style.justifyContent='space-between'; hdr.style.alignItems='center';
     const left = document.createElement('div');
     const title = document.createElement('div'); title.style.fontWeight='700'; title.textContent = q.question || '(no question)';
     left.appendChild(title);
-    const meta = document.createElement('div'); meta.className='muted'; meta.textContent = `${q.module} | ${q.language} | #${index+1}`;
+    const meta = document.createElement('div'); meta.className='muted meta-row';
+    const num = document.createElement('span'); num.className='number-badge'; num.textContent = `#${q.no||index+1}`;
+    const metaText = document.createElement('span'); metaText.textContent = `${q.module} | ${q.language}`;
+    meta.appendChild(num); meta.appendChild(metaText);
     left.appendChild(meta);
 
     const right = document.createElement('div'); right.style.display='flex'; right.style.gap='6px';
-
-    right.appendChild(iconBtn('fa-pen','Edit', ()=> { /* focus handled by contentEditable */ }));
     right.appendChild(iconBtn('fa-language','Translate', ()=> translateQuestion(q.id)));
     right.appendChild(iconBtn('fa-undo','Undo', ()=> undoQ(q.id)));
     right.appendChild(iconBtn('fa-redo','Redo', ()=> redoQ(q.id)));
@@ -250,9 +244,24 @@ function renderList(){
     // body
     const body = document.createElement('div'); body.style.marginTop='8px';
     if(q.questionImg && q.questionImg.dataURL){ const im=document.createElement('img'); im.src=q.questionImg.dataURL; im.className='img-preview'; body.appendChild(im); }
+
     const qDiv = document.createElement('div'); qDiv.contentEditable = true; qDiv.style.fontWeight='600'; qDiv.style.marginTop='8px'; qDiv.textContent = q.question;
     qDiv.addEventListener('input', ()=> { q.question = qDiv.textContent; pushHistory(q); saveState(); });
     body.appendChild(qDiv);
+
+    // English toggle button (if english exists or to allow show)
+    const enToggle = document.createElement('button'); enToggle.className='toggle-en'; enToggle.textContent = (q.questionEn || q.optionEn.some(x=>x)) ? 'Show / Edit English' : 'Add English';
+    enToggle.style.marginTop='6px';
+    body.appendChild(enToggle);
+
+    // container for english block
+    const enBlock = document.createElement('div'); enBlock.className='en-block'; enBlock.style.display = (q.questionEn || q.optionEn.some(x=>x)) ? 'block' : 'none';
+
+    // english question
+    const enQ = document.createElement('div'); enQ.contentEditable = true; enQ.style.fontWeight='600'; enQ.style.marginBottom='6px';
+    enQ.textContent = q.questionEn || '';
+    enQ.addEventListener('input', ()=> { q.questionEn = enQ.textContent; pushHistory(q); saveState(); });
+    enBlock.appendChild(document.createTextNode('English:')); enBlock.appendChild(enQ);
 
     // options table
     const table = document.createElement('table'); table.className='preview-table';
@@ -268,6 +277,19 @@ function renderList(){
     }
     body.appendChild(table);
 
+    // english options inside enBlock
+    const enTable = document.createElement('table'); enTable.className='preview-table';
+    for(let i=0;i<4;i++){
+      const tr=document.createElement('tr');
+      const td1=document.createElement('td'); td1.textContent = ['A','B','C','D'][i];
+      const td2=document.createElement('td');
+      const optDiv=document.createElement('div'); optDiv.contentEditable=true; optDiv.textContent = (q.optionEn && q.optionEn[i]) ? q.optionEn[i] : '';
+      optDiv.addEventListener('input', ()=> { q.optionEn = q.optionEn || [null,null,null,null]; q.optionEn[i] = optDiv.textContent; pushHistory(q); saveState(); });
+      td2.appendChild(optDiv);
+      tr.appendChild(td1); tr.appendChild(td2); enTable.appendChild(tr);
+    }
+    enBlock.appendChild(enTable);
+
     // answer & solution
     const ans = document.createElement('div'); ans.style.marginTop='6px'; ans.innerHTML = `<b>Answer:</b> <span contenteditable="true">${q.answer||''}</span>`;
     ans.querySelector('span').addEventListener('input', (e)=>{ q.answer = e.target.textContent; pushHistory(q); saveState(); });
@@ -278,6 +300,20 @@ function renderList(){
     body.appendChild(solEdit);
     if(q.solutionImg && q.solutionImg.dataURL){ const im=document.createElement('img'); im.src=q.solutionImg.dataURL; im.className='img-preview'; body.appendChild(im); }
 
+    // english solution
+    const enSol = document.createElement('div'); enSol.style.marginTop='8px';
+    const enSolLabel = document.createElement('div'); enSolLabel.textContent = 'Solution (English):';
+    const enSolEdit = document.createElement('div'); enSolEdit.contentEditable=true; enSolEdit.textContent = q.solutionEn || '';
+    enSolEdit.addEventListener('input', ()=>{ q.solutionEn = enSolEdit.textContent; pushHistory(q); saveState(); });
+    enSol.appendChild(enSolLabel); enSol.appendChild(enSolEdit);
+    enBlock.appendChild(enSol);
+
+    // toggle behavior
+    enToggle.addEventListener('click', ()=> {
+      enBlock.style.display = enBlock.style.display === 'none' ? 'block' : 'none';
+    });
+
+    body.appendChild(enBlock);
     card.appendChild(body);
     list.appendChild(card);
   });
@@ -290,25 +326,25 @@ function iconBtn(cls,title,fn){
   return b;
 }
 
-/* delete, save, undo, redo */
+/* delete/save/undo/redo */
 function deleteQ(id){ questions = questions.filter(q=>q.id!==id); saveState(); renderList(); }
 function saveQ(id){ const q = questions.find(x=>x.id===id); if(q){ pushHistory(q); saveState(); alert('Saved'); } }
+
 function undoQ(id){
   const q = questions.find(x=>x.id===id); if(!q || !q.history || q.history.length<=1){ alert('No undo'); return; }
   const cur = q.history.pop(); q.redo = q.redo || []; q.redo.push(cur);
   const prev = q.history[q.history.length-1]; const obj = JSON.parse(prev);
-  q.question = obj.question; q.option = obj.option; q.answer = obj.answer; q.solution = obj.solution; q.questionImg = obj.questionImg; q.optionImg = obj.optionImg; q.solutionImg = obj.solutionImg;
+  Object.assign(q,obj);
   saveState(); renderList();
 }
 function redoQ(id){
   const q = questions.find(x=>x.id===id); if(!q || !q.redo || q.redo.length===0){ alert('No redo'); return; }
   const snap = q.redo.pop(); q.history.push(snap); const obj = JSON.parse(snap);
-  q.question = obj.question; q.option = obj.option; q.answer = obj.answer; q.solution = obj.solution; q.questionImg = obj.questionImg; q.optionImg = obj.optionImg; q.solutionImg = obj.solutionImg;
+  Object.assign(q,obj);
   saveState(); renderList();
 }
 
-/* ---------------- Translate ---------------- */
-/* Free Google translate endpoint */
+/* --------------- Translate --------------- */
 async function translateText(text, sl='auto', tl='en'){
   if(!text) return '';
   try{
@@ -321,7 +357,6 @@ async function translateText(text, sl='auto', tl='en'){
   }catch(e){ console.warn(e); return ''; }
 }
 
-/* Translate one question (HI -> EN) unless module==='Hindi' */
 async function translateQuestion(id){
   const q = questions.find(x=>x.id===id); if(!q) return;
   if(String(q.module||'').trim().toLowerCase() === 'hindi'){ alert('Module Hindi set है — translate skip'); return; }
@@ -334,20 +369,15 @@ async function translateQuestion(id){
   pushHistory(q); saveState(); renderList(); alert('Translated (HI→EN)');
 }
 
-/* Translate form fields (single) */
 $('translateFormBtn').addEventListener('click', async ()=>{
   const module = $('module').value.trim().toLowerCase();
   if(module === 'hindi'){ alert('Module Hindi है — translate skip'); return; }
-  const qTextRaw = $('question').value;
-  const qText = normalizeNewlines(qTextRaw);
+  const qText = normalizeNewlines($('question').value || '');
   if(!isHindi(qText)){ alert('Question में Hindi नहीं दिखी'); return; }
   const t = await translateText(qText,'hi','en');
-  if(t) {
-    alert('Translated (EN):\n' + t);
-  } else alert('Translate failed');
+  if(t) alert('Translated (EN):\n' + t); else alert('Translate failed');
 });
 
-/* Translate all questions where applicable */
 $('translateAllBtn').addEventListener('click', async ()=>{
   let count = 0;
   for(const q of questions){
@@ -364,34 +394,37 @@ $('translateAllBtn').addEventListener('click', async ()=>{
   saveState(); renderList(); alert('Translated ' + count + ' questions.');
 });
 
-/* ---------------- JSON import/export ---------------- */
+/* --------------- JSON import/export --------------- */
 $('importBtn').addEventListener('click', ()=>{
   const txt = $('jsonArea').value.trim(); if(!txt){ alert('Paste JSON'); return; }
   try{
     const parsed = JSON.parse(txt);
     const arr = Array.isArray(parsed) ? parsed : [parsed];
     arr.forEach(o=>{
-      // ensure options array length 4 and normalize newlines
       const opts = o.option && Array.isArray(o.option) ? o.option.slice(0,4) : [
         o.optA,o.optB,o.optC,o.optD
       ].map(x=> x==null ? '' : x);
       while(opts.length<4) opts.push('');
+      const optEn = o.optionEn && Array.isArray(o.optionEn) ? o.optionEn.slice(0,4) : [null,null,null,null];
+      while(optEn.length<4) optEn.push(null);
       const ent = {
-        id: uid(), module:o.module||'General', question:normalizeNewlines(o.question||''), questionImg:o.questionImg||null,
+        id: uid(), no: qCounter, module:o.module||'General', question:normalizeNewlines(o.question||''), questionImg:o.questionImg||null,
         option: opts.map(x=>normalizeNewlines(x)),
         optionImg: o.optionImg || [null,null,null,null],
         answer:o.answer||'', solution:normalizeNewlines(o.solution||''), solutionImg:o.solutionImg||null,
         pm:o.pm||1, nm:o.nm||0, language:o.language||'',
-        history:[], redo:[], questionEn:null, optionEn:[null,null,null,null], solutionEn:null
+        history:[], redo:[], questionEn: normalizeNewlines(o.questionEn||'') || null, optionEn: optEn.map(x=> x==null ? null : normalizeNewlines(x)), solutionEn: normalizeNewlines(o.solutionEn||'') || null
       };
       pushHistory(ent); questions.unshift(ent);
+      qCounter++;
     });
     saveState(); renderList(); alert('Imported ' + arr.length + ' items');
   }catch(e){ alert('Invalid JSON'); console.error(e); }
 });
+
 $('exportJson').addEventListener('click', ()=>{
   const out = questions.map(q=>({
-    module:q.module, question:q.question, option:q.option, answer:q.answer, solution:q.solution, pm:q.pm, nm:q.nm, language:q.language,
+    no:q.no, module:q.module, question:q.question, option:q.option, answer:q.answer, solution:q.solution, pm:q.pm, nm:q.nm, language:q.language,
     questionEn:q.questionEn||null, optionEn:q.optionEn||null, solutionEn:q.solutionEn||null
   }));
   const blob = new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
@@ -399,46 +432,47 @@ $('exportJson').addEventListener('click', ()=>{
   setTimeout(()=>URL.revokeObjectURL(url),3000);
 });
 
-/* remove last / reset all */
+/* remove / reset */
 $('removeLast').addEventListener('click', ()=>{ if(!questions.length) return; questions.shift(); saveState(); renderList(); });
 $('resetAll').addEventListener('click', ()=>{ if(!confirm('Clear all questions?')) return; questions=[]; saveState(); renderList(); });
 
-/* autosave interval */
+/* autosave */
 setInterval(saveState,2000);
 
-/* ---------------- DOCX builder (images embedded) ---------------- */
-/* Build document xml and zip (minimal, safe) */
+/* --------------- DOCX builder (same as before) --------------- */
+/* (kept same logic for export; newline handling already implemented in previous update if needed) */
 
-/* collect media */
 function collectMedia(){
   const list = [];
   questions.forEach((q,qi)=>{
-    if(q.questionImg && q.questionImg.dataURL) list.push({qIndex:qi,field:'questionImg',data:q.questionImg});
-    (q.optionImg||[]).forEach((oi,idx)=>{ if(oi && oi.dataURL) list.push({qIndex:qi,field:'optionImg'+idx,data:oi}); });
-    if(q.solutionImg && q.solutionImg.dataURL) list.push({qIndex:qi,field:'solutionImg',data:q.solutionImg});
+    if(q.questionImg && q.questionImg.dataURL) { q.questionImg.qIndex = qi; list.push({qIndex:qi,field:'questionImg',data:q.questionImg}); }
+    (q.optionImg||[]).forEach((oi,idx)=>{ if(oi && oi.dataURL){ oi.qIndex = qi; list.push({qIndex:qi,field:'optionImg'+idx,data:oi}); } });
+    if(q.solutionImg && q.solutionImg.dataURL) { q.solutionImg.qIndex = qi; list.push({qIndex:qi,field:'solutionImg',data:q.solutionImg}); }
   });
   return list;
 }
 
-/* drawing xml */
 function drawingXml(rId,cx=4500000,cy=3000000){
   return `<w:p><w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="1" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
 }
 
-/* row xml (use xmlRunsWithBreaks for text with line breaks) */
+function xmlRunsWithBreaks(s){
+  if(s==null) return '';
+  const parts = String(s).split('\n');
+  return parts.map((p,idx)=>`<w:r><w:t xml:space="preserve">${xmlEscape(p)}</w:t></w:r>` + (idx<parts.length-1 ? `<w:r><w:br/></w:r>` : '')).join('');
+}
+
 function makeRow(name,val,rId,cx,cy){
   const img = rId ? drawingXml(rId,cx,cy) : '';
-  // left cell (name) and right cell (value, with preserved breaks)
   const leftCell = `<w:tc><w:tcPr><w:shd w:fill="FFFFFF"/></w:tcPr><w:p>${xmlRunsWithBreaks(name)}</w:p></w:tc>`;
   const rightCell = `<w:tc><w:tcPr><w:shd w:fill="FFF8DC"/></w:tcPr><w:p>${xmlRunsWithBreaks(val)}</w:p>${img}</w:tc>`;
   return `<w:tr>${leftCell}${rightCell}</w:tr>`;
 }
 
-/* one question table xml */
 function buildTableXml(q,rmap){
   let rows='';
   rows += makeRow('Module', q.module||'', null);
-  rows += makeRow('questionno', q.id||'', null);
+  rows += makeRow('questionno', q.no||q.id||'', null);
   rows += makeRow('Question', q.question||'', rmap.questionImg, rmap.questionCx, rmap.questionCy);
   rows += makeRow('Type','mcq',null);
   for(let i=0;i<4;i++) rows += makeRow('option', q.option[i]||'', rmap['optionImg'+i], rmap['optionImg'+i+'Cx'], rmap['optionImg'+i+'Cy']);
@@ -450,7 +484,6 @@ function buildTableXml(q,rmap){
   return `<w:tbl><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="6"/><w:left w:val="single" w:sz="6"/><w:right w:val="single" w:sz="6"/><w:bottom w:val="single" w:sz="6"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${rows}</w:tbl><w:p><w:r><w:t></w:t></w:r></w:p>`;
 }
 
-/* build package */
 function buildPackageFiles(){
   const mediaList = collectMedia();
   const mediaFiles = [];
@@ -484,11 +517,10 @@ function buildPackageFiles(){
   let body='';
   questions.forEach((q,qi)=>{
     body += buildTableXml(q,rmapPerQ[qi]);
-    // if translation exists, add english table too
     const hasEn = q.questionEn || (q.optionEn && q.optionEn.some(x=>x));
     if(hasEn){
       const qEn = {
-        module:q.module, id:q.id+'_EN', question:q.questionEn||'', option:q.optionEn||['','','',''], answer:q.answer, solution:q.solutionEn||'', pm:q.pm, nm:q.nm, language:'en'
+        module:q.module, no:q.no+'_EN', question:q.questionEn||'', option:q.optionEn||['','','',''], answer:q.answer, solution:q.solutionEn||'', pm:q.pm, nm:q.nm, language:'en'
       };
       body += buildTableXml(qEn, rmapPerQ[qi]);
     }
@@ -515,12 +547,10 @@ function buildPackageFiles(){
   return files;
 }
 
-/* zip builder (binary) */
 function buildZip(files){
   const enc = new TextEncoder();
   const toBytes = v => v instanceof Uint8Array ? v : enc.encode(v);
   function u32(n){ return [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255]; }
-  // crc table
   let table = window.__crcTable; if(!table){ table = new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c = (c&1)?(0xEDB88320^(c>>>1)):(c>>>1); table[i]=c>>>0;} window.__crcTable = table; }
   function crc32(buf){ let crc = ~0; for(let i=0;i<buf.length;i++) crc = (crc>>>8) ^ table[(crc ^ buf[i]) & 0xff]; return (~crc)>>>0; }
 
@@ -553,13 +583,12 @@ function buildZip(files){
 /* export docx */
 $('exportBtn').addEventListener('click', ()=>{
   if(!questions.length){ alert('पहले कम से कम एक प्रश्न जोड़ो'); return; }
-  // ensure media objects have qIndex (collectMedia expects qIndex stored in objects when created)
+  // ensure qIndex assigned
   questions.forEach((q,qi)=>{
     if(q.questionImg) q.questionImg.qIndex = qi;
     if(q.optionImg) q.optionImg.forEach((img,idx)=>{ if(img) img.qIndex = qi; });
     if(q.solutionImg) q.solutionImg.qIndex = qi;
   });
-
   try{
     const files = buildPackageFiles();
     const zip = buildZip(files);
