@@ -111,7 +111,7 @@
         <button id="exportJson" class="btn small" style="background:#444;color:#fff"><i class="fa fa-download"></i> Export JSON</button>
         <button id="clearBtn" class="btn small" style="background:#9ca3af;color:#fff"><i class="fa fa-trash"></i> Clear Fields</button>
       </div>
-      <div class="muted-small" style="margin-top:8px">Import tip: JSON में newline के लिए \\n या /n डालो, system उसे ठीक कर देगा।</div>
+      <div class="muted-small" style="margin-top:8px">Import tip: अगर तुम .33 जैसा लिखते हो तो tool उसे 0.33 में बदल देगा।</div>
     </div>
 
     <div class="panel right">
@@ -164,11 +164,9 @@ function loadState(){
     if(raw){
       const obj = JSON.parse(raw);
       questions = obj.questions || [];
-      // ★ Robust qCounter recovery:
       if(obj.qCounter && Number(obj.qCounter) > 0){
         qCounter = Number(obj.qCounter);
       } else {
-        // derive from existing questions max no
         const maxNo = questions.reduce((m,q)=> Math.max(m, Number(q.no||0)), 0);
         qCounter = maxNo > 0 ? maxNo + 1 : (questions.length ? questions.length + 1 : 1);
       }
@@ -358,7 +356,6 @@ function undoQ(id){
   const q = questions.find(x=>x.id===id); if(!q || !q.history || q.history.length<=1){ alert('No undo'); return; }
   const cur = q.history.pop(); q.redo = q.redo || []; q.redo.push(cur);
   const prev = q.history[q.history.length-1]; const obj = JSON.parse(prev);
-  // merge
   Object.assign(q, obj);
   saveState(); renderList();
 }
@@ -424,14 +421,17 @@ $('translateAllBtn').addEventListener('click', async ()=>{
 
 /* ---------------- JSON import/export ---------------- */
 $('importBtn').addEventListener('click', ()=>{
-  const txt = $('jsonArea').value.trim();
+  let txt = $('jsonArea').value.trim();
   if(!txt){ alert('Paste JSON'); return; }
 
   try{
+    // ★ Preprocess: convert ": .33" -> ": 0.33" (handles common case where leading zero omitted)
+    txt = txt.replace(/:\s*\.([0-9]+)/g, ': 0.$1');
+
     const parsed = JSON.parse(txt);
     const arr = Array.isArray(parsed) ? parsed : [parsed];
 
-    // ★ FIX: Replace existing list and start numbering from 1 (since you give only this JSON)
+    // Replace existing list and restart numbering from 1
     questions = [];
     qCounter = 1;
 
@@ -455,9 +455,9 @@ $('importBtn').addEventListener('click', ()=>{
         solution: normalizeNewlines(o.solution||''),
         solutionImg:o.solutionImg||null,
 
-        // ★ FIX: Use provided pm/nm when present, otherwise default
-        pm: (o.pm !== undefined ? o.pm : 1),
-        nm: (o.nm !== undefined ? o.nm : 0),
+        // Use provided pm/nm when present (and convert to string for consistent DOCX output)
+        pm: (o.pm !== undefined && o.pm !== null) ? String(o.pm) : '1',
+        nm: (o.nm !== undefined && o.nm !== null) ? String(o.nm) : '0',
 
         language:o.language||'',
         history:[], redo:[],
@@ -466,12 +466,11 @@ $('importBtn').addEventListener('click', ()=>{
         solutionEn: normalizeNewlines(o.solutionEn||'') || null
       };
       pushHistory(ent);
-      // add to top of list so render order consistent with other flows
       questions.push(ent);
       qCounter++;
     });
     saveState(); renderList(); alert('Imported ' + arr.length + ' items');
-  }catch(e){ alert('Invalid JSON'); console.error(e); }
+  }catch(e){ alert('Invalid JSON — check format'); console.error(e); }
 });
 
 $('exportJson').addEventListener('click', ()=>{
@@ -490,7 +489,7 @@ $('removeLast').addEventListener('click', ()=>{ if(!questions.length) return; qu
 $('resetAll').addEventListener('click', ()=>{
   if(!confirm('Clear all questions?')) return;
   questions = [];
-  qCounter = 1;   // ★ FIXED — numbering reset when clearing all
+  qCounter = 1;   // numbering reset
   saveState();
   renderList();
 });
@@ -499,8 +498,6 @@ $('resetAll').addEventListener('click', ()=>{
 setInterval(saveState,2000);
 
 /* ---------------- DOCX builder (images embedded) ---------------- */
-/* Build document xml and zip (minimal, safe) */
-
 function collectMedia(){
   const list = [];
   questions.forEach((q,qi)=>{
@@ -531,8 +528,13 @@ function buildTableXml(q,rmap){
   for(let i=0;i<4;i++) rows += makeRow('option', q.option[i]||'', rmap['optionImg'+i], rmap['optionImg'+i+'Cx'], rmap['optionImg'+i+'Cy']);
   rows += makeRow('answer', q.answer||'', null);
   rows += makeRow('Solution', q.solution||'', rmap.solutionImg, rmap.solutionCx, rmap.solutionCy);
-  rows += makeRow('Positive Marks', q.pm||'', null);
-  rows += makeRow('Negative Marks', q.nm||'', null);
+
+  // ★ IMPORTANT FIX: ensure pm/nm ALWAYS rendered, even if 0 or decimal strings like ".33"
+  const pmVal = (q.pm !== undefined && q.pm !== null) ? String(q.pm) : '';
+  const nmVal = (q.nm !== undefined && q.nm !== null) ? String(q.nm) : '';
+  rows += makeRow('Positive Marks', pmVal, null);
+  rows += makeRow('Negative Marks', nmVal, null);
+
   rows += makeRow('language', q.language||'', null);
   return `<w:tbl><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="6"/><w:left w:val="single" w:sz="6"/><w:right w:val="single" w:sz="6"/><w:bottom w:val="single" w:sz="6"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${rows}</w:tbl><w:p><w:r><w:t></w:t></w:r></w:p>`;
 }
