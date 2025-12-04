@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MCQ Tool — Translate, Preview, DOCX (Updated)</title>
+<title>MCQ Tool — Translate, Preview, DOCX</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
   :root{--accent:#0b7a3e;--muted:#6b7280}
@@ -111,7 +111,7 @@
         <button id="exportJson" class="btn small" style="background:#444;color:#fff"><i class="fa fa-download"></i> Export JSON</button>
         <button id="clearBtn" class="btn small" style="background:#9ca3af;color:#fff"><i class="fa fa-trash"></i> Clear Fields</button>
       </div>
-      <div class="muted-small" style="margin-top:8px">Import tip: JSON में newline के लिए \n या /n डालो, system उसे ठीक कर देगा।</div>
+      <div class="muted-small" style="margin-top:8px">Import tip: JSON में newline के लिए \\n या /n डालो, system उसे ठीक कर देगा।</div>
     </div>
 
     <div class="panel right">
@@ -144,19 +144,37 @@ const $ = id => document.getElementById(id);
 function uid(){ return 'q'+(Date.now().toString(36))+(Math.random().toString(36).slice(2,6)); }
 function isHindi(s){ return /[\u0900-\u097F]/.test(s||''); }
 function readFile(input){ return new Promise(res=>{ const f = input && input.files && input.files[0]; if(!f) return res(null); const r = new FileReader(); r.onload = ()=> res({name:f.name,type:f.type,dataURL:r.result}); r.readAsDataURL(f); }); }
-function normalizeNewlines(s){ if(s==null) return ''; return String(s).replace(/\\n/g,'\n').replace(/\/n/g,'\n'); }
+function normalizeNewlines(s){
+  if(s==null) return '';
+  return String(s).replace(/\\n/g,'\n').replace(/\/n/g,'\n');
+}
 function xmlEscape(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function xmlRunsWithBreaks(s){ if(s==null) return ''; const parts = String(s).split('\n'); return parts.map((p,idx)=>`<w:r><w:t xml:space="preserve">${xmlEscape(p)}</w:t></w:r>` + (idx<parts.length-1 ? `<w:r><w:br/></w:r>` : '')).join(''); }
+
+/* xml runs with breaks for Word */
+function xmlRunsWithBreaks(s){
+  if(s==null) return '';
+  const parts = String(s).split('\n');
+  return parts.map((p,idx)=>`<w:r><w:t xml:space="preserve">${xmlEscape(p)}</w:t></w:r>` + (idx<parts.length-1 ? `<w:r><w:br/></w:r>` : '')).join('');
+}
 
 /* load/save */
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){ const obj = JSON.parse(raw); questions = obj.questions || [];
-      // determine qCounter robustly: prefer stored, else max no +1, else 1
-      if(obj.qCounter && Number(obj.qCounter)>0) qCounter = Number(obj.qCounter);
-      else if(questions.length) qCounter = Math.max(...questions.map(q=>Number(q.no||0))) + 1;
-      else qCounter = 1;
+    if(raw){
+      const obj = JSON.parse(raw);
+      questions = obj.questions || [];
+      // ★ Robust qCounter recovery:
+      if(obj.qCounter && Number(obj.qCounter) > 0){
+        qCounter = Number(obj.qCounter);
+      } else {
+        // derive from existing questions max no
+        const maxNo = questions.reduce((m,q)=> Math.max(m, Number(q.no||0)), 0);
+        qCounter = maxNo > 0 ? maxNo + 1 : (questions.length ? questions.length + 1 : 1);
+      }
+    } else {
+      questions = [];
+      qCounter = 1;
     }
   }catch(e){ console.warn(e); questions=[]; qCounter=1; }
   renderList();
@@ -188,9 +206,6 @@ $('addBtn').addEventListener('click', async ()=>{
   const optC = normalizeNewlines($('optC').value||'').trim();
   const optD = normalizeNewlines($('optD').value||'').trim();
 
-  // ensure qCounter does not collide: recompute from existing highest no
-  qCounter = Math.max(qCounter, questions.length ? Math.max(...questions.map(q=>Number(q.no||0))) + 1 : qCounter);
-
   const ent = {
     id: uid(),
     no: qCounter, // persistent number
@@ -202,8 +217,8 @@ $('addBtn').addEventListener('click', async ()=>{
     answer: $('answer').value.trim(),
     solution: normalizeNewlines($('solution').value||'').trim(),
     solutionImg: await readFile($('solutionImg')),
-    pm: Number($('pm').value === '' ? 1 : $('pm').value),
-    nm: Number($('nm').value === '' ? 0 : $('nm').value),
+    pm: $('pm').value !== '' ? $('pm').value : '1',
+    nm: $('nm').value !== '' ? $('nm').value : '0',
     language: $('language').value || (isHindi(questionText) ? 'hi' : 'en'),
     history: [], redo: [],
     questionEn: null,
@@ -222,7 +237,6 @@ function clearForm(){
   $('optA').value=''; $('optB').value=''; $('optC').value=''; $('optD').value='';
   $('imgA').value=''; $('imgB').value=''; $('imgC').value=''; $('imgD').value='';
   $('answer').value=''; $('solution').value=''; $('solutionImg').value='';
-  // keep defaults for pm/nm (do not force override if user wants different defaults)
   $('pm').value='1'; $('nm').value='0'; $('language').value='';
 }
 
@@ -344,6 +358,7 @@ function undoQ(id){
   const q = questions.find(x=>x.id===id); if(!q || !q.history || q.history.length<=1){ alert('No undo'); return; }
   const cur = q.history.pop(); q.redo = q.redo || []; q.redo.push(cur);
   const prev = q.history[q.history.length-1]; const obj = JSON.parse(prev);
+  // merge
   Object.assign(q, obj);
   saveState(); renderList();
 }
@@ -409,10 +424,17 @@ $('translateAllBtn').addEventListener('click', async ()=>{
 
 /* ---------------- JSON import/export ---------------- */
 $('importBtn').addEventListener('click', ()=>{
-  const txt = $('jsonArea').value.trim(); if(!txt){ alert('Paste JSON'); return; }
+  const txt = $('jsonArea').value.trim();
+  if(!txt){ alert('Paste JSON'); return; }
+
   try{
     const parsed = JSON.parse(txt);
     const arr = Array.isArray(parsed) ? parsed : [parsed];
+
+    // ★ FIX: Replace existing list and start numbering from 1 (since you give only this JSON)
+    questions = [];
+    qCounter = 1;
+
     arr.forEach(o=>{
       const opts = o.option && Array.isArray(o.option) ? o.option.slice(0,4) : [
         o.optA,o.optB,o.optC,o.optD
@@ -420,10 +442,6 @@ $('importBtn').addEventListener('click', ()=>{
       while(opts.length<4) opts.push('');
       const optEn = o.optionEn && Array.isArray(o.optionEn) ? o.optionEn.slice(0,4) : [null,null,null,null];
       while(optEn.length<4) optEn.push(null);
-
-      // Use pm/nm from JSON if provided (including 0), else fallback to current form default or 1/0
-      const pmVal = (o.pm !== undefined && o.pm !== null) ? Number(o.pm) : ( $('pm') ? Number($('pm').value || 1) : 1 );
-      const nmVal = (o.nm !== undefined && o.nm !== null) ? Number(o.nm) : ( $('nm') ? Number($('nm').value || 0) : 0 );
 
       const ent = {
         id: uid(),
@@ -436,13 +454,20 @@ $('importBtn').addEventListener('click', ()=>{
         answer:o.answer||'',
         solution: normalizeNewlines(o.solution||''),
         solutionImg:o.solutionImg||null,
-        pm: pmVal, nm: nmVal, language:o.language||'',
+
+        // ★ FIX: Use provided pm/nm when present, otherwise default
+        pm: (o.pm !== undefined ? o.pm : 1),
+        nm: (o.nm !== undefined ? o.nm : 0),
+
+        language:o.language||'',
         history:[], redo:[],
         questionEn: normalizeNewlines(o.questionEn||'') || null,
         optionEn: optEn.map(x=> x==null ? null : normalizeNewlines(x)),
         solutionEn: normalizeNewlines(o.solutionEn||'') || null
       };
-      pushHistory(ent); questions.unshift(ent);
+      pushHistory(ent);
+      // add to top of list so render order consistent with other flows
+      questions.push(ent);
       qCounter++;
     });
     saveState(); renderList(); alert('Imported ' + arr.length + ' items');
@@ -461,12 +486,21 @@ $('exportJson').addEventListener('click', ()=>{
 
 /* remove last / reset all */
 $('removeLast').addEventListener('click', ()=>{ if(!questions.length) return; questions.shift(); saveState(); renderList(); });
-$('resetAll').addEventListener('click', ()=>{ if(!confirm('Clear all questions?')) return; questions=[]; qCounter=1; saveState(); renderList(); });
+
+$('resetAll').addEventListener('click', ()=>{
+  if(!confirm('Clear all questions?')) return;
+  questions = [];
+  qCounter = 1;   // ★ FIXED — numbering reset when clearing all
+  saveState();
+  renderList();
+});
 
 /* autosave interval */
 setInterval(saveState,2000);
 
 /* ---------------- DOCX builder (images embedded) ---------------- */
+/* Build document xml and zip (minimal, safe) */
+
 function collectMedia(){
   const list = [];
   questions.forEach((q,qi)=>{
@@ -571,6 +605,7 @@ function buildZip(files){
   const enc = new TextEncoder();
   const toBytes = v => v instanceof Uint8Array ? v : enc.encode(v);
   function u32(n){ return [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255]; }
+  // crc table
   let table = window.__crcTable; if(!table){ table = new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c = (c&1)?(0xEDB88320^(c>>>1)):(c>>>1); table[i]=c>>>0;} window.__crcTable = table; }
   function crc32(buf){ let crc = ~0; for(let i=0;i<buf.length;i++) crc = (crc>>>8) ^ table[(crc ^ buf[i]) & 0xff]; return (~crc)>>>0; }
 
@@ -603,6 +638,7 @@ function buildZip(files){
 /* export docx */
 $('exportBtn').addEventListener('click', ()=>{
   if(!questions.length){ alert('पहले कम से कम एक प्रश्न जोड़ो'); return; }
+  // ensure media objects have qIndex
   questions.forEach((q,qi)=>{
     if(q.questionImg) q.questionImg.qIndex = qi;
     if(q.optionImg) q.optionImg.forEach((img,idx)=>{ if(img) img.qIndex = qi; });
