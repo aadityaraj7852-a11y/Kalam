@@ -1,160 +1,188 @@
 <!doctype html>
-
-<html lang="hi">  
+<html lang="hi" data-theme="dark">  
 <head>  
 <meta charset="utf-8">  
 <meta name="viewport" content="width=device-width,initial-scale=1">  
 <title>MCQ Tool — Translate, Preview, DOCX</title>  
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">  
 <style>  
-  :root{--accent:#0b7a3e;--muted:#6b7280}  
-  body{font-family:Arial,Helvetica,sans-serif;background:#0f172a;color:#fff;margin:12px}  
-  .wrap{display:flex;gap:12px;flex-wrap:wrap}  
-  .panel{background:#0f172a;border:1px solid #e6edf3;padding:12px;border-radius:8px;box-sizing:border-box}  
-  .left{flex:1;min-width:360px
-    
-  }  
-  .right{flex:1;min-width:360px;max-width:700px}  
-  input,textarea,select,button{font-size:14px
-  background:#0f172a;
-  } 
-  input, textarea, select {
-  width: 100%;
-  padding: 8px;
-  margin: 6px 0;
-  border: 1px solid #d1e2ef;
-  border-radius: 6px;
-  box-sizing: border-box;
-  background:#0f172a ; /* यहाँ Navy Blue कर दिया */
-  color: white;        /* टेक्स्ट दिखने के लिए सफ़ेद रंग */
-}
+  :root {
+    --bg: #ffffff;
+    --text: #111111;
+    --panel-bg: #f3f7ff;
+    --input-bg: #ffffff;
+    --border: #d1e2ef;
+    --card-bg: #ffffff;
+    --accent: #0b7a3e;
+    --muted: #6b7280;
+    --btn-text: #111111;
+  }
+  [data-theme="dark"] {
+    --bg: #0f172a;
+    --text: #ffffff;
+    --panel-bg: #1e293b;
+    --input-bg: #0f172a;
+    --border: #334155;
+    --card-bg: #000000;
+    --btn-text: #ffffff;
+  }
 
-  textarea{min-height:70px;resize:vertical
-    background:#0f172a;
-  }  
-  label{font-weight:600;margin-top:6px;display:block
-    
-  }  
-  .row{display:flex;gap:8px}  
-  .row>div{flex:1}  
-  .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;border:0;cursor:pointer}  
-  .btn-green{background:var(--accent);color:#fff}  
-  .btn-blue{background:#0b74ff;color:#fff}  
-  .btn-muted{background:#6b7280;color:#fff}  
-  .icon-btn{background:transparent;border:0;cursor:pointer;font-size:16px;padding:6px;color:#111}  
-  .card{border:1px solid #e6eef6;padding:10px;border-radius:8px;margin-bottom:10px;background:#000
-    
-  }  
-  .muted{color:var(--muted);font-size:13px}  
-  .preview-table{width:100%;border-collapse:collapse;margin-top:8px}  
-  .preview-table td{border:1px solid #e2ecf6;padding:6px;vertical-align:top}  
-  .img-preview{max-width:220px;border:1px solid #e2ecf6;border-radius:6px;margin-top:8px}  
-  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}  
-  .small{font-size:13px;padding:6px 8px}  
-  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px}  
-  .title{font-size:18px;font-weight:700}  
-  .en-block{background:#f3f7ff;padding:8px;margin-top:8px;border-radius:6px;border:1px solid #dbeafe}  
-  .toggle-en{cursor:pointer;background:transparent;border:0;color:#0b74ff;font-weight:600}  
-  .meta-row{display:flex;gap:10px;align-items:center}  
-  .number-badge{background:#0f172a;color:#0b74ff;padding:4px 8px;border-radius:6px;font-weight:700}  
-  .muted-small{color:#6b7280;font-size:12px}  
+  body { font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); margin: 12px; transition: background 0.3s, color 0.3s; }  
+  .wrap { display: flex; gap: 12px; flex-wrap: wrap; }  
+  .panel { background: var(--panel-bg); border: 1px solid var(--border); padding: 12px; border-radius: 8px; box-sizing: border-box; }  
+  .left { flex: 1; min-width: 360px; }  
+  .right { flex: 1; min-width: 360px; max-width: 700px; }  
+  
+  input, textarea, select, button { font-size: 14px; } 
+  input, textarea, select {
+    width: 100%;
+    padding: 8px;
+    margin: 6px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-sizing: border-box;
+    background: var(--input-bg);
+    color: var(--text);
+  }
+  textarea { min-height: 70px; resize: vertical; }  
+  label { font-weight: 600; margin-top: 6px; display: block; }  
+  .row { display: flex; gap: 8px; }  
+  .row > div { flex: 1; }  
+  
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; border: 0; cursor: pointer; }  
+  .btn-green { background: var(--accent); color: #fff; }  
+  .btn-blue { background: #0b74ff; color: #fff; }  
+  .btn-muted { background: var(--muted); color: #fff; }  
+  .icon-btn { background: transparent; border: 0; cursor: pointer; font-size: 16px; padding: 6px; color: var(--text); }  
+  
+  .card { border: 1px solid var(--border); padding: 10px; border-radius: 8px; margin-bottom: 10px; background: var(--card-bg); }  
+  .muted { color: var(--muted); font-size: 13px; }  
+  .preview-table { width: 100%; border-collapse: collapse; margin-top: 8px; }  
+  .preview-table td { border: 1px solid var(--border); padding: 6px; vertical-align: top; }  
+  .img-preview { max-width: 220px; border: 1px solid var(--border); border-radius: 6px; margin-top: 8px; }  
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }  
+  .small { font-size: 13px; padding: 6px 8px; }  
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }  
+  .title { font-size: 18px; font-weight: 700; }  
+  .en-block { background: var(--panel-bg); padding: 8px; margin-top: 8px; border-radius: 6px; border: 1px solid var(--border); }  
+  .toggle-en { cursor: pointer; background: transparent; border: 0; color: #0b74ff; font-weight: 600; }  
+  .meta-row { display: flex; gap: 10px; align-items: center; }  
+  .number-badge { background: var(--input-bg); color: #0b74ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border); }  
+  .muted-small { color: var(--muted); font-size: 12px; }  
 </style>  
 </head>  
 <body>  
 <div style="max-width:1200px;margin:auto">  
   <div class="toolbar" style="margin-bottom:10px">  
-    <div class="title">MCQ Editor — Translate(Free) · Preview · DOCX</div>  
-    <div class="muted">Autosave · Translate बिना API · Images embedded</div>  
-  </div>    <div class="wrap">  
+    <div>
+      <div class="title">MCQ Editor — Translate(Free) · Preview · DOCX</div>  
+      <div class="muted">Autosave · Translate बिना API · Images embedded</div>  
+    </div>
+    <button id="themeToggle" class="btn small" style="background:#444;color:#fff;font-size:16px;" title="Toggle Night Mode"><i class="fa fa-sun"></i></button>
+  </div>    
+
+  <div class="wrap">  
     <div class="panel left">  
       <label>Module</label>  
-      <input id="module" placeholder="Hindi / English / General">  <label>Question</label>  
-  <textarea id="question" placeholder="Question लिखो..."></textarea>  
-  <label>Question Image (optional)</label>  
-  <input type="file" accept="image/*" id="questionImg">  
+      <input id="module" placeholder="Hindi / English / General">  
+      <label>Question</label>  
+      <textarea id="question" placeholder="Question लिखो..."></textarea>  
+      <label>Question Image (optional)</label>  
+      <input type="file" accept="image/*" id="questionImg">  
 
-  <div class="row">  
-    <div>  
-      <label>Option A</label>  
-      <input id="optA" placeholder="Option A">  
-      <label>Image A</label><input type="file" accept="image/*" id="imgA">  
+      <div class="row">  
+        <div>  
+          <label>Option A</label>  
+          <input id="optA" placeholder="Option A">  
+          <label>Image A</label><input type="file" accept="image/*" id="imgA">  
+        </div>  
+        <div>  
+          <label>Option B</label>  
+          <input id="optB" placeholder="Option B">  
+          <label>Image B</label><input type="file" accept="image/*" id="imgB">  
+        </div>  
+      </div>  
+
+      <div class="row">  
+        <div>  
+          <label>Option C</label>  
+          <input id="optC" placeholder="Option C">  
+          <label>Image C</label><input type="file" accept="image/*" id="imgC">  
+        </div>  
+        <div>  
+          <label>Option D</label>  
+          <input id="optD" placeholder="Option D">  
+          <label>Image D</label><input type="file" accept="image/*" id="imgD">  
+        </div>  
+      </div>  
+
+      <label>Answer (A/B/C/D)</label><input id="answer" placeholder="A">  
+
+      <label>Solution</label><textarea id="solution" placeholder="Solution लिखो..."></textarea>  
+      <label>Solution Image (optional)</label><input type="file" accept="image/*" id="solutionImg">  
+
+      <div class="row">  
+        <div><label>Positive Marks</label><input id="pm" value="1"></div>  
+        <div><label>Negative Marks</label><input id="nm" value="0.0"></div>  
+      </div>  
+
+      <label>Language (optional)</label>  
+      <select id="language">  
+        <option value="">auto</option><option value="hi">hi</option><option value="en">en</option>  
+      </select>  
+
+      <div class="actions" style="margin-top:8px">  
+        <button id="addBtn" class="btn btn-green"><i class="fa fa-plus"></i> Add</button>  
+        <button id="translateFormBtn" class="btn small" style="background:#ff8c00;color:#fff"><i class="fa fa-language"></i> Translate Form</button>  
+        <button id="translateAllBtn" class="btn small" style="background:#0ea5ff;color:#fff"><i class="fa fa-globe"></i> Translate All</button>  
+        <button id="exportBtn" class="btn btn-blue"><i class="fa fa-file-word"></i> Export DOCX</button>  
+      </div>  
+
+      <label style="margin-top:8px">JSON Import (paste array)</label>  
+      <textarea id="jsonArea" style="height:90px;font-family:monospace"></textarea>  
+      <div style="margin-top:8px" class="actions">  
+        <button id="importBtn" class="btn btn-muted"><i class="fa fa-upload"></i> Import</button>  
+        <button id="exportJson" class="btn small" style="background:#444;color:#fff"><i class="fa fa-download"></i> Export JSON</button>  
+        <button id="clearBtn" class="btn small" style="background:#9ca3af;color:#fff"><i class="fa fa-trash"></i> Clear Fields</button>  
+      </div>  
+      <div class="muted-small" style="margin-top:8px">Import tip: अगर तुम .33 जैसा लिखते हो तो tool उसे 0.33 में बदल देगा।</div>  
     </div>  
-    <div>  
-      <label>Option B</label>  
-      <input id="optB" placeholder="Option B">  
-      <label>Image B</label><input type="file" accept="image/*" id="imgB">  
-    </div>  
+
+    <div class="panel right">  
+      <div style="display:flex;justify-content:space-between;align-items:center">  
+        <div style="font-weight:700">Preview / Questions</div>  
+        <div class="muted">Click text in preview to edit. Icons: Translate · Undo · Redo · Save · Delete</div>  
+      </div>  
+
+      <div id="list" style="margin-top:8px"></div>  
+
+      <div style="margin-top:10px" class="actions">  
+        <button id="removeLast" class="btn small" style="background:#ef4444;color:#fff"><i class="fa fa-minus-circle"></i> Remove Last</button>  
+        <button id="resetAll" class="btn small" style="background:#6b7280;color:#fff"><i class="fa fa-trash-alt"></i> Clear All</button>  
+      </div>  
+      <p class="muted" style="margin-top:10px">Tip: Google free translate endpoint इस्तेमाल किया गया है — official API नहीं।</p>  
+    </div>
+
   </div>  
-
-  <div class="row">  
-    <div>  
-      <label>Option C</label>  
-      <input id="optC" placeholder="Option C">  
-      <label>Image C</label><input type="file" accept="image/*" id="imgC">  
-    </div>  
-    <div>  
-      <label>Option D</label>  
-      <input id="optD" placeholder="Option D">  
-      <label>Image D</label><input type="file" accept="image/*" id="imgD">  
-    </div>  
-  </div>  
-
-  <label>Answer (A/B/C/D)</label><input id="answer" placeholder="A">  
-
-  <label>Solution</label><textarea id="solution" placeholder="Solution लिखो..."></textarea>  
-  <label>Solution Image (optional)</label><input type="file" accept="image/*" id="solutionImg">  
-
-  <div class="row">  
-    <div><label>Positive Marks</label><input id="pm" value="1"></div>  
-    <div><label>Negative Marks</label><input id="nm" value="0.0"></div>  
-  </div>  
-
-  <label>Language (optional)</label>  
-  <select id="language">  
-    <option value="">auto</option><option value="hi">hi</option><option value="en">en</option>  
-  </select>  
-
-  <div class="actions" style="margin-top:8px">  
-    <button id="addBtn" class="btn btn-green"><i class="fa fa-plus"></i> Add</button>  
-    <button id="translateFormBtn" class="btn small" style="background:#ff8c00;color:#fff"><i class="fa fa-language"></i> Translate Form</button>  
-    <button id="translateAllBtn" class="btn small" style="background:#0ea5ff;color:#fff"><i class="fa fa-globe"></i> Translate All</button>  
-    <button id="exportBtn" class="btn btn-blue"><i class="fa fa-file-word"></i> Export DOCX</button>  
-  </div>  
-
-  <label style="margin-top:8px">JSON Import (paste array)</label>  
-  <textarea id="jsonArea" style="height:90px;font-family:monospace"></textarea>  
-  <div style="margin-top:8px" class="actions">  
-    <button id="importBtn" class="btn btn-muted"><i class="fa fa-upload"></i> Import</button>  
-    <button id="exportJson" class="btn small" style="background:#444;color:#fff"><i class="fa fa-download"></i> Export JSON</button>  
-    <button id="clearBtn" class="btn small" style="background:#9ca3af;color:#fff"><i class="fa fa-trash"></i> Clear Fields</button>  
-  </div>  
-  <div class="muted-small" style="margin-top:8px">Import tip: अगर तुम .33 जैसा लिखते हो तो tool उसे 0.33 में बदल देगा।</div>  
 </div>  
 
-<div class="panel right">  
-  <div style="display:flex;justify-content:space-between;align-items:center">  
-    <div style="font-weight:700">Preview / Questions</div>  
-    <div class="muted">Click text in preview to edit. Icons: Translate · Undo · Redo · Save · Delete</div>  
-  </div>  
-
-  <div id="list" style="margin-top:8px"></div>  
-
-  <div style="margin-top:10px" class="actions">  
-    <button id="removeLast" class="btn small" style="background:#ef4444;color:#fff"><i class="fa fa-minus-circle"></i> Remove Last</button>  
-    <button id="resetAll" class="btn small" style="background:#6b7280;color:#fff"><i class="fa fa-trash-alt"></i> Clear All</button>  
-  </div>  
-  <p class="muted" style="margin-top:10px">Tip: Google free translate endpoint इस्तेमाल किया गया है — official API नहीं।</p>  
-</div>
-
-  </div>  
-</div>  <script>  
+<script>  
 /* ---------------- State ---------------- */  
 const STORAGE_KEY = 'mcq_full_v2';  
-let questions = []; // newest first  
+let questions = []; 
 let qCounter = 1;  
   
 /* DOM helpers */  
 const $ = id => document.getElementById(id);  
+
+/* Theme Toggle Logic */
+const themeBtn = $('themeToggle');
+let isDark = true;
+themeBtn.addEventListener('click', () => {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  themeBtn.innerHTML = isDark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+});
   
 /* utils */  
 function uid(){ return 'q'+(Date.now().toString(36))+(Math.random().toString(36).slice(2,6)); }  
@@ -222,7 +250,7 @@ $('addBtn').addEventListener('click', async ()=>{
   
   const ent = {  
     id: uid(),  
-    no: qCounter, // persistent number  
+    no: qCounter,  
     module: $('module').value.trim() || 'General',  
     question: questionText,  
     questionImg: qImg,  
@@ -261,7 +289,6 @@ function renderList(){
   questions.forEach((q, index)=>{  
     const card = document.createElement('div'); card.className='card';  
   
-    // header  
     const hdr = document.createElement('div'); hdr.style.display='flex'; hdr.style.justifyContent='space-between'; hdr.style.alignItems='center';  
     const left = document.createElement('div');  
     const title = document.createElement('div'); title.style.fontWeight='700'; title.textContent = q.question || '(no question)';  
@@ -281,7 +308,6 @@ function renderList(){
     hdr.appendChild(left); hdr.appendChild(right);  
     card.appendChild(hdr);  
   
-    // body  
     const body = document.createElement('div'); body.style.marginTop='8px';  
     if(q.questionImg && q.questionImg.dataURL){ const im=document.createElement('img'); im.src=q.questionImg.dataURL; im.className='img-preview'; body.appendChild(im); }  
   
@@ -289,22 +315,18 @@ function renderList(){
     qDiv.addEventListener('input', ()=> { q.question = qDiv.textContent; pushHistory(q); saveState(); });  
     body.appendChild(qDiv);  
   
-    // English toggle  
     const enToggle = document.createElement('button'); enToggle.className='toggle-en'; enToggle.textContent = (q.questionEn || (q.optionEn && q.optionEn.some(x=>x))) ? 'Show / Edit English' : 'Add English';  
     enToggle.style.marginTop='6px';  
     body.appendChild(enToggle);  
   
-    // english block  
     const enBlock = document.createElement('div'); enBlock.className='en-block'; enBlock.style.display = (q.questionEn || (q.optionEn && q.optionEn.some(x=>x))) ? 'block' : 'none';  
   
-    // english question  
     const enQLabel = document.createElement('div'); enQLabel.style.fontWeight='600'; enQLabel.style.marginTop='4px'; enQLabel.textContent = 'English Question:';  
     const enQ = document.createElement('div'); enQ.contentEditable = true; enQ.style.fontWeight='600'; enQ.style.marginBottom='6px';  
     enQ.textContent = q.questionEn || '';  
     enQ.addEventListener('input', ()=> { q.questionEn = enQ.textContent; pushHistory(q); saveState(); });  
     enBlock.appendChild(enQLabel); enBlock.appendChild(enQ);  
   
-    // options table (Hindi)  
     const table = document.createElement('table'); table.className='preview-table';  
     for(let i=0;i<4;i++){  
       const tr=document.createElement('tr');  
@@ -318,7 +340,6 @@ function renderList(){
     }  
     body.appendChild(table);  
   
-    // english options in enBlock  
     const enTable = document.createElement('table'); enTable.className='preview-table';  
     for(let i=0;i<4;i++){  
       const tr=document.createElement('tr');  
@@ -331,7 +352,6 @@ function renderList(){
     }  
     enBlock.appendChild(enTable);  
   
-    // answer & solution  
     const ans = document.createElement('div'); ans.style.marginTop='6px'; ans.innerHTML = `<b>Answer:</b> <span contenteditable="true">${q.answer||''}</span>`;  
     ans.querySelector('span').addEventListener('input', (e)=>{ q.answer = e.target.textContent; pushHistory(q); saveState(); });  
     body.appendChild(ans);  
@@ -341,7 +361,6 @@ function renderList(){
     body.appendChild(solEdit);  
     if(q.solutionImg && q.solutionImg.dataURL){ const im=document.createElement('img'); im.src=q.solutionImg.dataURL; im.className='img-preview'; body.appendChild(im); }  
   
-    // english solution  
     const enSolLabel = document.createElement('div'); enSolLabel.style.marginTop='8px'; enSolLabel.textContent = 'Solution (English):';  
     const enSolEdit = document.createElement('div'); enSolEdit.contentEditable=true; enSolEdit.textContent = q.solutionEn || '';  
     enSolEdit.addEventListener('input', ()=>{ q.solutionEn = enSolEdit.textContent; pushHistory(q); saveState(); });  
@@ -398,7 +417,19 @@ async function translateText(text, sl='auto', tl='en'){
 /* Translate one question (HI -> EN) */  
 async function translateQuestion(id){  
   const q = questions.find(x=>x.id===id); if(!q) return;  
-  if(String(q.module||'').trim().toLowerCase() === 'hindi'){ alert('Module Hindi set है — translate skip'); return; }  
+  
+  // बदलाव: अगर मॉड्यूल हिंदी है, तो अनुवाद की बजाय हिंदी टेक्स्ट को सीधा अंग्रेजी वाले ब्लॉक में भर दिया जाएगा
+  if(String(q.module||'').trim().toLowerCase() === 'hindi'){ 
+    q.questionEn = q.question;
+    q.optionEn = [...q.option];
+    q.solutionEn = q.solution;
+    pushHistory(q); 
+    saveState(); 
+    renderList(); 
+    alert('हिंदी मॉड्यूल होने के कारण टेक्स्ट को ट्रांसलेट नहीं किया गया, बल्कि सीधा कॉपी कर दिया गया है।'); 
+    return; 
+  }  
+
   const needs = (q.language==='hi' || isHindi(q.question) || isHindi(q.solution) || q.option.some(o=>isHindi(o)));  
   if(!needs){ alert('No Hindi detected to translate'); return; }  
   q.questionEn = await translateText(q.question,'hi','en');  
@@ -411,8 +442,13 @@ async function translateQuestion(id){
 /* Translate form fields (single) */  
 $('translateFormBtn').addEventListener('click', async ()=>{  
   const module = $('module').value.trim().toLowerCase();  
-  if(module === 'hindi'){ alert('Module Hindi है — translate skip'); return; }  
   const qText = normalizeNewlines($('question').value || '');  
+
+  if(module === 'hindi'){ 
+      alert('हिंदी मॉड्यूल होने के कारण यह ट्रांसलेट नहीं होगा, सीधा कॉपी माना जाएगा।\n\n' + qText); 
+      return; 
+  }  
+  
   if(!isHindi(qText)){ alert('Question में Hindi नहीं दिखी'); return; }  
   const t = await translateText(qText,'hi','en');  
   if(t) alert('Translated (EN):\n' + t); else alert('Translate failed');  
@@ -422,7 +458,16 @@ $('translateFormBtn').addEventListener('click', async ()=>{
 $('translateAllBtn').addEventListener('click', async ()=>{  
   let count = 0;  
   for(const q of questions){  
-    if(String(q.module||'').trim().toLowerCase() === 'hindi') continue;  
+    // बदलाव: अगर मॉड्यूल हिंदी है, तो टेक्स्ट कॉपी करें और अगली बारी पर जाएँ
+    if(String(q.module||'').trim().toLowerCase() === 'hindi') {
+        q.questionEn = q.question;
+        q.optionEn = [...q.option];
+        q.solutionEn = q.solution;
+        pushHistory(q);
+        count++;
+        continue;
+    }  
+
     if(q.language==='hi' || isHindi(q.question) || isHindi(q.solution) || q.option.some(o=>isHindi(o))){  
       q.questionEn = await translateText(q.question,'hi','en');  
       q.optionEn = [];  
@@ -432,7 +477,7 @@ $('translateAllBtn').addEventListener('click', async ()=>{
       count++;  
     }  
   }  
-  saveState(); renderList(); alert('Translated ' + count + ' questions.');  
+  saveState(); renderList(); alert('Processed ' + count + ' questions.');  
 });  
   
 /* ---------------- JSON import/export ---------------- */  
@@ -441,13 +486,10 @@ $('importBtn').addEventListener('click', ()=>{
   if(!txt){ alert('Paste JSON'); return; }  
   
   try{  
-    // ★ Preprocess: convert ": .33" -> ": 0.33" (handles common case where leading zero omitted)  
     txt = txt.replace(/:\s*\.([0-9]+)/g, ': 0.$1');  
-  
     const parsed = JSON.parse(txt);  
     const arr = Array.isArray(parsed) ? parsed : [parsed];  
   
-    // Replace existing list and restart numbering from 1  
     questions = [];  
     qCounter = 1;  
   
@@ -470,11 +512,8 @@ $('importBtn').addEventListener('click', ()=>{
         answer:o.answer||'',  
         solution: normalizeNewlines(o.solution||''),  
         solutionImg:o.solutionImg||null,  
-  
-        // Use provided pm/nm when present (and convert to string for consistent DOCX output)  
         pm: (o.pm !== undefined && o.pm !== null) ? String(o.pm) : '1',  
         nm: (o.nm !== undefined && o.nm !== null) ? String(o.nm) : '0',  
-  
         language:o.language||'',  
         history:[], redo:[],  
         questionEn: normalizeNewlines(o.questionEn||'') || null,  
@@ -499,21 +538,19 @@ $('exportJson').addEventListener('click', ()=>{
   setTimeout(()=>URL.revokeObjectURL(url),3000);  
 });  
   
-/* remove last / reset all */  
 $('removeLast').addEventListener('click', ()=>{ if(!questions.length) return; questions.shift(); saveState(); renderList(); });  
   
 $('resetAll').addEventListener('click', ()=>{  
   if(!confirm('Clear all questions?')) return;  
   questions = [];  
-  qCounter = 1;   // numbering reset  
+  qCounter = 1;   
   saveState();  
   renderList();  
 });  
   
-/* autosave interval */  
 setInterval(saveState,2000);  
   
-/* ---------------- DOCX builder (images embedded) ---------------- */  
+/* ---------------- DOCX builder ---------------- */  
 function collectMedia(){  
   const list = [];  
   questions.forEach((q,qi)=>{  
@@ -545,13 +582,12 @@ function buildTableXml(q,rmap){
   rows += makeRow('answer', q.answer||'', null);  
   rows += makeRow('Solution', q.solution||'', rmap.solutionImg, rmap.solutionCx, rmap.solutionCy);  
   
-  // ★ IMPORTANT FIX: ensure pm/nm ALWAYS rendered, even if 0 or decimal strings like ".33"  
   const pmVal = (q.pm !== undefined && q.pm !== null) ? String(q.pm) : '';  
   const nmVal = (q.nm !== undefined && q.nm !== null) ? String(q.nm) : '';  
   rows += makeRow('Positive Marks', pmVal, null);  
   rows += makeRow('Negative Marks', nmVal, null);  
-  
   rows += makeRow('language', q.language||'', null);  
+  
   return `<w:tbl><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="6"/><w:left w:val="single" w:sz="6"/><w:right w:val="single" w:sz="6"/><w:bottom w:val="single" w:sz="6"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${rows}</w:tbl><w:p><w:r><w:t></w:t></w:r></w:p>`;  
 }  
   
@@ -618,12 +654,10 @@ function buildPackageFiles(){
   return files;  
 }  
   
-/* zip builder */  
 function buildZip(files){  
   const enc = new TextEncoder();  
   const toBytes = v => v instanceof Uint8Array ? v : enc.encode(v);  
   function u32(n){ return [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255]; }  
-  // crc table  
   let table = window.__crcTable; if(!table){ table = new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c = (c&1)?(0xEDB88320^(c>>>1)):(c>>>1); table[i]=c>>>0;} window.__crcTable = table; }  
   function crc32(buf){ let crc = ~0; for(let i=0;i<buf.length;i++) crc = (crc>>>8) ^ table[(crc ^ buf[i]) & 0xff]; return (~crc)>>>0; }  
   
@@ -653,10 +687,8 @@ function buildZip(files){
   return new Blob([out], {type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});  
 }  
   
-/* export docx */  
 $('exportBtn').addEventListener('click', ()=>{  
   if(!questions.length){ alert('पहले कम से कम एक प्रश्न जोड़ो'); return; }  
-  // ensure media objects have qIndex  
   questions.forEach((q,qi)=>{  
     if(q.questionImg) q.questionImg.qIndex = qi;  
     if(q.optionImg) q.optionImg.forEach((img,idx)=>{ if(img) img.qIndex = qi; });  
