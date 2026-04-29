@@ -104,7 +104,7 @@
         <button id="exportBtn" class="btn btn-blue" style="font-size:16px; padding:12px;"><i class="fa fa-file-word"></i> Export DOCX (Validates First)</button>  
       </div>  
       <div class="muted-small" style="margin-top:12px; line-height: 1.4;">
-        <b>Tip:</b> आप एक साथ कई JSON पेस्ट करके Import कर सकते हैं। पुराने प्रश्न डिलीट नहीं होंगे, नए प्रश्न लिस्ट में जुड़ते जाएंगे।
+        <b>Tip:</b> आप एक साथ कई JSON पेस्ट करके Import कर सकते हैं। पुराने प्रश्न डिलीट नहीं होंगे, और अगर कोई डुप्लीकेट प्रश्न होगा तो टूल उसे अपने आप छोड़ देगा।
       </div>  
     </div>  
 
@@ -410,55 +410,92 @@ $('importBtn').addEventListener('click', ()=>{
   let txt = $('jsonArea').value.trim();  
   if(!txt){ alert('Please paste JSON code to import'); return; }  
   
-  try{  
-    txt = txt.replace(/:\s*\.([0-9]+)/g, ': 0.$1');  
-    const parsed = JSON.parse(txt);  
-    const arr = Array.isArray(parsed) ? parsed : [parsed];  
+  let parsed;
+  try {  
+    let cleanTxt = txt;
+    // 1. Fix missing zero before decimal (e.g., .33 -> 0.33)
+    cleanTxt = cleanTxt.replace(/:\s*\.([0-9]+)/g, ': 0.$1');
+    // 2. Fix smart quotes
+    cleanTxt = cleanTxt.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
+    // 3. Remove trailing commas before brackets (common copy-paste error)
+    cleanTxt = cleanTxt.replace(/,\s*([\]}])/g, '$1');
+
+    try {
+        parsed = JSON.parse(cleanTxt);
+    } catch(err1) {
+        // Attempt fallback 1: missing array wrapping brackets
+        try {
+            parsed = JSON.parse('[' + cleanTxt + ']');
+        } catch(err2) {
+            // Attempt fallback 2: Using Function to parse relaxed JSON (handles single quotes, unquoted keys, etc.)
+            parsed = (new Function('return ' + cleanTxt))();
+        }
+    }
+  } catch(e) {
+      alert('Invalid JSON! टूल ने अपने आप फिक्स करने की कोशिश की पर सिंटैक्स बहुत ज्यादा गलत है।'); 
+      console.error(e);
+      return;
+  }
+
+  const arr = Array.isArray(parsed) ? parsed : [parsed];  
   
-    // Find highest 'no' to keep numbering continuous when appending
-    let maxNo = questions.reduce((m,q)=> Math.max(m, Number(q.no||0)), 0);
-    qCounter = maxNo + 1;
+  let maxNo = questions.reduce((m,q)=> Math.max(m, Number(q.no||0)), 0);
+  qCounter = maxNo + 1;
+
+  let addedCount = 0;
+  let duplicateCount = 0;
+
+  arr.forEach(o=>{  
+    const newQText = normalizeNewlines(o.question||'').trim();
+
+    // DUPLICATE CHECK: अगर यह सवाल पहले से मौजूद है, तो इसे छोड़ दें
+    const isDuplicate = questions.some(q => (q.question || '').trim() === newQText);
+    if(isDuplicate && newQText !== ''){
+        duplicateCount++;
+        return; // Skip this question
+    }
+
+    const opts = o.option && Array.isArray(o.option) ? o.option.slice(0,4) : [  
+      o.optA,o.optB,o.optC,o.optD  
+    ].map(x=> x==null ? '' : x);  
+    while(opts.length<4) opts.push('');  
+    const optEn = o.optionEn && Array.isArray(o.optionEn) ? o.optionEn.slice(0,4) : [null,null,null,null];  
+    while(optEn.length<4) optEn.push(null);  
+
+    const ent = {  
+      id: uid(),  
+      no: qCounter,  
+      module: o.module||'General',  
+      question: newQText,  
+      questionImg: o.questionImg||null,  
+      option: opts.map(x=>normalizeNewlines(x)),  
+      optionImg: o.optionImg || [null,null,null,null],  
+      answer: (o.answer||'').trim(),  
+      solution: normalizeNewlines(o.solution||''),  
+      solutionImg: o.solutionImg||null,  
+      pm: (o.pm !== undefined && o.pm !== null) ? String(o.pm) : '1',  
+      nm: (o.nm !== undefined && o.nm !== null) ? String(o.nm) : '0',  
+      language: o.language||'',  
+      history: [], redo: [],  
+      questionEn: normalizeNewlines(o.questionEn||'') || null,  
+      optionEn: optEn.map(x=> x==null ? null : normalizeNewlines(x)),  
+      solutionEn: normalizeNewlines(o.solutionEn||'') || null  
+    };  
+    pushHistory(ent);  
+    questions.push(ent); // Appending to array
+    qCounter++;  
+    addedCount++;
+  });  
   
-    arr.forEach(o=>{  
-      const opts = o.option && Array.isArray(o.option) ? o.option.slice(0,4) : [  
-        o.optA,o.optB,o.optC,o.optD  
-      ].map(x=> x==null ? '' : x);  
-      while(opts.length<4) opts.push('');  
-      const optEn = o.optionEn && Array.isArray(o.optionEn) ? o.optionEn.slice(0,4) : [null,null,null,null];  
-      while(optEn.length<4) optEn.push(null);  
+  saveState(); 
+  renderList(); 
+  $('jsonArea').value = ''; // clear text area
   
-      const ent = {  
-        id: uid(),  
-        no: qCounter,  
-        module: o.module||'General',  
-        question: normalizeNewlines(o.question||''),  
-        questionImg: o.questionImg||null,  
-        option: opts.map(x=>normalizeNewlines(x)),  
-        optionImg: o.optionImg || [null,null,null,null],  
-        answer: (o.answer||'').trim(),  
-        solution: normalizeNewlines(o.solution||''),  
-        solutionImg: o.solutionImg||null,  
-        pm: (o.pm !== undefined && o.pm !== null) ? String(o.pm) : '1',  
-        nm: (o.nm !== undefined && o.nm !== null) ? String(o.nm) : '0',  
-        language: o.language||'',  
-        history: [], redo: [],  
-        questionEn: normalizeNewlines(o.questionEn||'') || null,  
-        optionEn: optEn.map(x=> x==null ? null : normalizeNewlines(x)),  
-        solutionEn: normalizeNewlines(o.solutionEn||'') || null  
-      };  
-      pushHistory(ent);  
-      questions.push(ent); // Appending to array
-      qCounter++;  
-    });  
-    
-    saveState(); 
-    renderList(); 
-    $('jsonArea').value = ''; // clear text area
-    alert('Successfully imported ' + arr.length + ' question(s)!');  
-  }catch(e){ 
-    alert('Invalid JSON! कृपया JSON का फॉर्मेट (Brackets [], Commas ,) चेक करें।'); 
-    console.error(e); 
-  }  
+  let alertMsg = `Successfully imported ${addedCount} question(s)!`;
+  if(duplicateCount > 0){
+      alertMsg += `\n(${duplicateCount} डुप्लीकेट सवाल इग्नोर कर दिए गए हैं)`;
+  }
+  alert(alertMsg);  
 });  
   
 $('exportJson').addEventListener('click', ()=>{  
