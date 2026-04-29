@@ -146,7 +146,6 @@ function xmlEscape(s){ if(s==null) return ''; return String(s).replace(/&/g,'&am
 function xmlRunsWithBreaks(s){  
   if(s==null) return '';  
   const parts = String(s).split('\n');  
-  // Font applied: Poppins (Regular 400 look for Devnagari)
   return parts.map((p,idx)=>`<w:r><w:rPr><w:rFonts w:ascii="Poppins" w:hAnsi="Poppins" w:cs="Poppins" w:eastAsia="Poppins"/></w:rPr><w:t xml:space="preserve">${xmlEscape(p)}</w:t></w:r>` + (idx<parts.length-1 ? `<w:r><w:br/></w:r>` : '')).join('');  
 }  
   
@@ -417,18 +416,24 @@ $('importBtn').addEventListener('click', ()=>{
     cleanTxt = cleanTxt.replace(/:\s*\.([0-9]+)/g, ': 0.$1');
     // 2. Fix smart quotes
     cleanTxt = cleanTxt.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
-    // 3. Remove trailing commas before brackets (common copy-paste error)
+    // 3. Remove trailing commas before brackets
     cleanTxt = cleanTxt.replace(/,\s*([\]}])/g, '$1');
+
+    // 4. SMART FIX: Handle Multiple Pasted JSON Arrays like [...] [...]
+    cleanTxt = cleanTxt.replace(/\]\s*\[/g, ',');
+    
+    // 5. SMART FIX: Handle Multiple Pasted JSON Objects like {...} {...}
+    cleanTxt = cleanTxt.replace(/\}\s*\{/g, '},{');
 
     try {
         parsed = JSON.parse(cleanTxt);
     } catch(err1) {
-        // Attempt fallback 1: missing array wrapping brackets
+        // Fallback 1: Missing outer array brackets
         try {
             parsed = JSON.parse('[' + cleanTxt + ']');
         } catch(err2) {
-            // Attempt fallback 2: Using Function to parse relaxed JSON (handles single quotes, unquoted keys, etc.)
-            parsed = (new Function('return ' + cleanTxt))();
+            // Fallback 2: Function parser for relaxed JSON
+            parsed = (new Function('return [' + cleanTxt.replace(/^\[|\]$/g, '') + ']'))();
         }
     }
   } catch(e) {
@@ -448,7 +453,7 @@ $('importBtn').addEventListener('click', ()=>{
   arr.forEach(o=>{  
     const newQText = normalizeNewlines(o.question||'').trim();
 
-    // DUPLICATE CHECK: अगर यह सवाल पहले से मौजूद है, तो इसे छोड़ दें
+    // DUPLICATE CHECK
     const isDuplicate = questions.some(q => (q.question || '').trim() === newQText);
     if(isDuplicate && newQText !== ''){
         duplicateCount++;
@@ -482,16 +487,16 @@ $('importBtn').addEventListener('click', ()=>{
       solutionEn: normalizeNewlines(o.solutionEn||'') || null  
     };  
     pushHistory(ent);  
-    questions.push(ent); // Appending to array
+    questions.push(ent); 
     qCounter++;  
     addedCount++;
   });  
   
   saveState(); 
   renderList(); 
-  $('jsonArea').value = ''; // clear text area
+  $('jsonArea').value = ''; 
   
-  let alertMsg = `Successfully imported ${addedCount} question(s)!`;
+  let alertMsg = `Successfully imported ${addedCount} new question(s)!`;
   if(duplicateCount > 0){
       alertMsg += `\n(${duplicateCount} डुप्लीकेट सवाल इग्नोर कर दिए गए हैं)`;
   }
