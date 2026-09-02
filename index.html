@@ -1,708 +1,721 @@
-<!doctype html>
-<html lang="hi">  
-<head>  
-<meta charset="utf-8">  
-<meta name="viewport" content="width=device-width,initial-scale=1">  
-<title>MCQ Tool — Translate, Preview, DOCX</title>  
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">  
-<style>  
-  :root {
-    --bg: #ffffff;
-    --text: #111111;
-    --panel-bg: #f3f7ff;
-    --input-bg: #ffffff;
-    --border: #d1e2ef;
-    --card-bg: #ffffff;
-    --accent: #0b7a3e;
-    --muted: #6b7280;
-    --btn-text: #111111;
-  }
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mockrise - MCQ Editor Pro (Admin Panel Export)</title>
 
-  body { font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); margin: 12px; }  
-  .wrap { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }  
-  .panel { background: var(--panel-bg); border: 1px solid var(--border); padding: 12px; border-radius: 8px; box-sizing: border-box; }  
-  .left { flex: 1; min-width: 300px; max-width: 400px; position: sticky; top: 12px; }  
-  .right { flex: 2; min-width: 360px; }  
-  
-  input, textarea, select, button { font-size: 14px; } 
-  input, textarea, select {
-    width: 100%;
-    padding: 8px;
-    margin: 6px 0;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    box-sizing: border-box;
-    background: var(--input-bg);
-    color: var(--text);
-  }
-  textarea { min-height: 70px; resize: vertical; }  
-  label { font-weight: 600; margin-top: 6px; display: block; }  
-  
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px; border-radius: 6px; border: 0; cursor: pointer; font-weight: 600; }  
-  .btn-green { background: var(--accent); color: #fff; }  
-  .btn-blue { background: #0b74ff; color: #fff; }  
-  .btn-muted { background: var(--muted); color: #fff; }  
-  .icon-btn { background: transparent; border: 0; cursor: pointer; font-size: 16px; padding: 6px; color: var(--text); }  
-  
-  .card { border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-bottom: 12px; background: var(--card-bg); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }  
-  .muted { color: var(--muted); font-size: 13px; }  
-  .preview-table { width: 100%; border-collapse: collapse; margin-top: 8px; }  
-  .preview-table td { border: 1px solid var(--border); padding: 6px; vertical-align: top; }  
-  .img-preview { max-width: 220px; border: 1px solid var(--border); border-radius: 6px; margin-top: 8px; }  
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }  
-  .small { font-size: 13px; padding: 6px 8px; }  
-  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }  
-  .title { font-size: 20px; font-weight: 700; }  
-  .en-block { background: var(--panel-bg); padding: 8px; margin-top: 8px; border-radius: 6px; border: 1px solid var(--border); }  
-  .toggle-en { cursor: pointer; background: transparent; border: 0; color: #0b74ff; font-weight: 600; }  
-  .meta-row { display: flex; gap: 10px; align-items: center; }  
-  .number-badge { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700; border: 1px solid #bae6fd; font-size: 16px; }  
-  .muted-small { color: var(--muted); font-size: 12px; }  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
-  /* Error Indicator Box */
-  .error-box { 
-    background: #ffebeb; 
-    color: #d32f2f; 
-    padding: 8px; 
-    border-radius: 6px; 
-    font-size: 13px; 
-    margin-top: 10px; 
-    font-weight: 600; 
-    border: 1px solid #ffcdd2; 
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-</style>  
-</head>  
-<body>  
-<div style="max-width:1200px;margin:auto">  
-  <div class="toolbar">  
-    <div>
-      <div class="title">MCQ Editor — JSON Import & Export Tool</div>  
-      <div class="muted">Autosave · DOCX Export · Translation (Free)</div>  
-    </div>
-    <div id="totalQ" class="number-badge">Total Questions: 0</div>
-  </div>    
+  <!-- JSZip (For Native DOCX Export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  
+  <!-- LocalForage (IndexedDB for UNLIMITED Auto-Save Data) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
-  <div class="wrap">  
-    <div class="panel left">  
-      <label style="font-size: 16px;">JSON Import (Paste Array Here)</label>  
-      <textarea id="jsonArea" style="height:250px;font-family:monospace" placeholder='[\n  {\n    "question": "Sample?",\n    "option": ["A", "B", "C", "D"],\n    "answer": "A",\n    "solution": "Explain"\n  }\n]'></textarea>  
+  <style>
+    /* Light Theme */
+    body { margin: 0; padding: 0; background: #f3f4f6; font-family: 'Poppins', sans-serif; transition: background 0.3s, color 0.3s; }
+    #containerB { --bg: #ffffff; --text: #111111; --panel-bg: #ffffff; --input-bg: #ffffff; --border: #d1e2ef; --card-bg: #ffffff; --accent: #0b7a3e; --muted: #6b7280; color: var(--text); padding: 15px; }
+    
+    /* Dark Theme */
+    body.dark-mode { background: #0f172a; }
+    body.dark-mode #containerB { --bg: #1e293b; --text: #f8fafc; --panel-bg: #1e293b; --input-bg: #0f172a; --border: #334155; --card-bg: #1e293b; --muted: #94a3b8; color: var(--text); }
+    body.dark-mode .toolbar, body.dark-mode #formatToolbar { background: #1e293b; border-color: #334155; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    body.dark-mode .btn.small { background: #334155 !important; color: #f8fafc !important; border-color: #475569 !important; }
+    body.dark-mode .btn.small:hover { background: #475569 !important; }
+    body.dark-mode .preview-table td, body.dark-mode #listB div[contenteditable="true"] { border-color: #334155 !important; }
+    body.dark-mode #searchQuestions { background: #0f172a; color: #f8fafc; border-color: #334155; }
+    body.dark-mode #moduleDropdown { background: #1e293b !important; border-color: #334155 !important; color: #f8fafc !important; }
+    
+    /* Blockquote & Tables */
+    #listB blockquote { border-left: 4px solid #0ea5e9; padding: 10px; margin: 10px 0; background: #f0f9ff; color: #475569; font-style: italic; border-radius: 0 6px 6px 0; }
+    body.dark-mode #listB blockquote { border-left: 4px solid #3b82f6; background: #0f172a; color: #94a3b8; }
+    
+    #containerB .main-wrapper { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+    #containerB .panel { background: var(--panel-bg); border: 1px solid var(--border); padding: 15px; border-radius: 12px; box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.05); width: 100%; transition: 0.3s; }  
+    
+    #containerB input, #containerB textarea, #containerB button { font-size: 14px; font-family: inherit; } 
+    #containerB input[type="text"], #containerB textarea { width: 100%; padding: 8px; margin: 4px 0; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; background: var(--input-bg); color: var(--text); transition: 0.3s; }
+    #containerB textarea { min-height: 80px; resize: vertical; font-family: monospace; }  
+    #containerB label { font-weight: 600; margin-top: 4px; display: block; color:var(--text); }  
+    
+    #containerB .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; border-radius: 6px; border: 0; cursor: pointer; font-weight: 600; transition: 0.2s; }  
+    #containerB .btn:hover { opacity: 0.9; }
+    #containerB .btn-green { background: var(--accent); color: #fff; }  
+    #containerB .btn-blue { background: #0b74ff; color: #fff; }  
+    #containerB .icon-btn { background: transparent; border: 0; cursor: pointer; font-size: 18px; padding: 6px; color: var(--text); }  
+    
+    #containerB .card { border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-bottom: 12px; background: var(--card-bg); box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.3s; }  
+    #containerB .muted { color: var(--muted); font-size: 13px; }  
+    #containerB .preview-table { width: 100%; border-collapse: collapse; margin-top: 8px; }  
+    #containerB .preview-table td { border: 1px solid var(--border); padding: 6px; vertical-align: top; }  
+    #containerB .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px; }  
+    #containerB .small { font-size: 13px; padding: 6px 8px; }  
+    
+    #containerB .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--panel-bg); padding: 10px 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid var(--border); transition: 0.3s;}  
+    #containerB .title { font-size: 16px; font-weight: 700; color: var(--text); }  
+    #containerB .number-badge { background: #0ea5e9; color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 14px; border: none; }  
+    
+    #formatToolbar { display: flex; gap: 8px; padding: 8px 12px; background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; position: sticky; top: 10px; z-index: 1000; align-items: center; flex-wrap: wrap; box-shadow: 0 4px 10px rgba(0,0,0,0.08); transition: 0.3s;}
+    
+    .dropdown-hover { position: relative; display: inline-block; margin-left: auto; }
+    .dropdown-hover:hover #moduleDropdown { display: block; }
+    #moduleDropdown { display: none; position: absolute; top: 100%; right: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; z-index: 1001; min-width: 160px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: #111; }
+
+    /* Match Table (Side-by-side) Styling */
+    .match-table { width: 100%; border: none !important; border-collapse: collapse; margin-top: 0px; margin-bottom: 0px;}
+    .match-table td { border: none !important; width: 50%; vertical-align: top; padding: 4px; }
+  </style>
+</head>
+<body>
+
+<div id="containerB">
+    <div class="main-wrapper">  
       
-      <div style="margin-top:8px; display: flex; flex-direction: column; gap: 8px;">  
-        <button id="importBtn" class="btn btn-green"><i class="fa fa-upload"></i> Import JSON</button>  
-        
-        <div style="display:flex; gap:8px;">
-          <button id="clearJsonBtn" class="btn small" style="flex:1; background:#9ca3af;color:#fff"><i class="fa fa-eraser"></i> Clear Box</button>
-          <button id="exportJson" class="btn small" style="flex:1; background:#444;color:#fff"><i class="fa fa-download"></i> Export JSON</button>  
+      <!-- TOP TOOLBAR -->
+      <div class="toolbar">  
+        <div>
+          <div class="title">Mockrise - MCQ Editor Pro</div>  
+          <div class="muted" style="font-size: 11px;">Dynamic Lang Tags · Zero Gap Fix · Custom Translate</div>  
         </div>
+        <button id="themeToggle" class="icon-btn" title="Toggle Dark/Light Mode" style="color:#eab308;"><i class="fa fa-moon"></i></button>
+      </div>    
 
-        <button id="translateAllBtn" class="btn" style="background:#0ea5ff;color:#fff"><i class="fa fa-globe"></i> Translate All (HI to EN)</button>  
-        
-        <hr style="border:0; border-top:1px solid var(--border); margin:5px 0;">
-        <button id="exportBtn" class="btn btn-blue" style="font-size:16px; padding:12px;"><i class="fa fa-file-word"></i> Export DOCX (Validates First)</button>  
-      </div>  
-      <div class="muted-small" style="margin-top:12px; line-height: 1.4;">
-        <b>Tip:</b> आप एक साथ कई JSON पेस्ट करके Import कर सकते हैं। पुराने प्रश्न डिलीट नहीं होंगे, और अगर कोई डुप्लीकेट प्रश्न होगा तो टूल उसे अपने आप छोड़ देगा।
-      </div>  
-    </div>  
+      <!-- 1. DATA IMPORT -->
+      <div class="panel">  
+        <label style="font-size: 14px;"><i class="fa fa-database"></i> JSON Import / Backup Restore</label>  
+        <textarea id="jsonAreaB" placeholder='Paste JSON here...'></textarea>  
 
-    <div class="panel right">  
-      <div style="display:flex;justify-content:space-between;align-items:center">  
-        <div style="font-weight:700; font-size: 18px;">Preview / Questions</div>  
-        <div class="actions" style="margin-top:0;">  
-          <button id="removeLast" class="btn small" style="background:#ef4444;color:#fff"><i class="fa fa-minus-circle"></i> Remove Last</button>  
-          <button id="resetAll" class="btn small" style="background:#6b7280;color:#fff"><i class="fa fa-trash-alt"></i> Clear All</button>  
+        <div style="margin-top:8px; display: flex; gap: 8px; flex-wrap: wrap;">  
+          <button id="importBtnB" class="btn btn-green" style="flex: 2;"><i class="fa fa-code"></i> Import JSON</button>  
+          <button id="demoJsonBtn" class="btn small" style="background:#14b8a6;color:#fff" title="सभी 6 प्रकार के प्रश्नों का डेमो JSON लोड करें"><i class="fa fa-magic"></i> Load Demo 6-Types</button>
+          
+          <button id="clearJsonBtnB" class="btn small" style="background:#9ca3af;color:#fff"><i class="fa fa-eraser"></i> Clear</button>
+          <button id="copyJsonBtnB" class="btn small" style="background:#0284c7;color:#fff"><i class="fa fa-copy"></i> Copy JSON</button>  
+          <button id="exportJsonB" class="btn small" style="background:#111;color:#fff"><i class="fa fa-download"></i> Backup JSON</button>  
+          
+          <!-- TRANSLATE ALL BUTTON -->
+          <button id="translateAllBtn" class="btn small" style="background:#8b5cf6;color:#fff"><i class="fa fa-language"></i> Translate All</button>
         </div>  
+        
+        <div style="margin-top:12px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <!-- EXPORT WORD BUTTON -->
+            <button id="exportBtnB" class="btn btn-blue" style="flex: 2;"><i class="fa fa-file-word"></i> Export App DOCX (With Tags)</button>  
+        </div>
       </div>  
-      <div class="muted" style="margin-top: 4px; margin-bottom: 12px;">Click text in preview to edit directly. Warnings will indicate missing fields.</div>
 
-      <div id="list"></div>  
+      <!-- 2. STICKY FORMAT TOOLBAR -->
+      <div id="formatToolbar">
+          <div style="font-weight: 600; font-size: 13px; color: #0369a1; margin-right: 5px;">Format:</div>
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc; font-weight:bold;" onclick="document.execCommand('bold', false, null)" title="Bold">B</button>
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc; font-style:italic;" onclick="document.execCommand('italic', false, null)" title="Italic">I</button>
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc; text-decoration:underline;" onclick="document.execCommand('underline', false, null)" title="Underline">U</button>
+          
+          <div style="width: 1px; height: 18px; background: #94a3b8; margin: 0 4px;"></div>
+          
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('formatBlock', false, 'H1')" title="Add Heading 1"><b>H1</b></button>
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('formatBlock', false, 'H2')" title="Add Heading 2"><b>H2</b></button>
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('formatBlock', false, 'H3')" title="Add Heading 3"><b>H3</b></button>
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('formatBlock', false, 'H4')" title="Add Subheading 4"><b>H4</b></button>
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('formatBlock', false, 'BLOCKQUOTE')" title="Add Quote (Blockquote)"><b><i class="fa fa-quote-left"></i></b></button>
+          
+          <div style="width: 1px; height: 18px; background: #94a3b8; margin: 0 4px;"></div>
+
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('insertUnorderedList')" title="Bullet List (•)"><i class="fa fa-list-ul"></i></button>
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('insertOrderedList')" title="Number List (1. 2.)"><i class="fa fa-list-ol"></i></button>
+          
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="insertMatchTable()" title="आमने-सामने (Left-Right) मिलान वाली टेबल जोड़ें">
+              <b><i class="fa fa-columns"></i> 2-Col (मिलान)</b>
+          </button>
+          
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="insertStandardTable()" title="Standard Grid Table">
+              <b><i class="fa fa-table"></i> Table</b>
+          </button>
+
+          <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('insertHTML', false, '<br>')" title="Force Line Break"><b>↵ Break</b></button>
+          
+          <div class="dropdown-hover" style="margin-left: auto;">
+              <div id="totalQBtn" class="number-badge" style="cursor:pointer; display:flex; align-items:center; gap:5px;">
+                  Total: 0 <i class="fa fa-caret-down"></i>
+              </div>
+              <div id="moduleDropdown">
+                  <div style="font-size:12px; color:#888;">No Data</div>
+              </div>
+          </div>
+      </div>
+
+      <!-- 3. BOTTOM: PREVIEW & QUESTIONS LIST -->
+      <div class="panel">  
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">  
+          <div style="font-weight:700; font-size: 16px;">Preview / Questions</div>  
+          <div class="actions" style="margin-top:0;">  
+            <button id="removeLastB" class="btn small" style="background:#ef4444;color:#fff"><i class="fa fa-minus-circle"></i> Remove Last</button>  
+            <button id="resetAllB" class="btn small" style="background:#6b7280;color:#fff"><i class="fa fa-trash-alt"></i> Clear All</button>  
+          </div>  
+        </div>  
+        
+        <input type="text" id="searchQuestions" placeholder="🔍 कोई भी सवाल खोजें..." style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text);">
+
+        <div id="listB"></div>  
+      </div>
+
     </div>
+</div>
 
-  </div>  
-</div>  
-
-<script>  
-/* ---------------- State ---------------- */  
-const STORAGE_KEY = 'mcq_full_v4';  
-let questions = []; 
-let qCounter = 1;  
+<script>
+(function(){
+  const STORAGE_KEY = 'mockrise_mcq_data_docx_native_100';  
+  let questions = []; let qCounter = 1;  
+  const $ = id => document.getElementById(id);  
   
-/* DOM helpers */  
-const $ = id => document.getElementById(id);  
-  
-/* utils */  
-function uid(){ return 'q'+(Date.now().toString(36))+(Math.random().toString(36).slice(2,6)); }  
-function isHindi(s){ return /[\u0900-\u097F]/.test(s||''); }  
-function normalizeNewlines(s){  
-  if(s==null) return '';  
-  return String(s).replace(/\\n/g,'\n').replace(/\/n/g,'\n');  
-}  
-function xmlEscape(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }  
-  
-/* xml runs with breaks for Word - WITH DEVANGARI FONT FIX */  
-function xmlRunsWithBreaks(s){  
-  if(s==null) return '';  
-  const parts = String(s).split('\n');  
-  return parts.map((p,idx)=>`<w:r><w:rPr><w:rFonts w:ascii="Poppins" w:hAnsi="Poppins" w:cs="Poppins" w:eastAsia="Poppins"/></w:rPr><w:t xml:space="preserve">${xmlEscape(p)}</w:t></w:r>` + (idx<parts.length-1 ? `<w:r><w:br/></w:r>` : '')).join('');  
-}  
-  
-/* load/save */  
-function loadState(){  
-  try{  
-    const raw = localStorage.getItem(STORAGE_KEY);  
-    if(raw){  
-      const obj = JSON.parse(raw);  
-      questions = obj.questions || [];  
-      if(obj.qCounter && Number(obj.qCounter) > 0){  
-        qCounter = Number(obj.qCounter);  
-      } else {  
-        const maxNo = questions.reduce((m,q)=> Math.max(m, Number(q.no||0)), 0);  
-        qCounter = maxNo > 0 ? maxNo + 1 : (questions.length ? questions.length + 1 : 1);  
-      }  
-    } else {  
-      questions = [];  
-      qCounter = 1;  
-    }  
-  }catch(e){ console.warn(e); questions=[]; qCounter=1; }  
-  renderList();  
-}  
-function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({questions,qCounter})); }catch(e){ console.warn(e); } }  
-  
-/* history helpers */  
-function pushHistory(q){  
-  q.history = q.history || [];  
-  const snap = JSON.stringify({  
-    question:q.question, option:[...q.option], answer:q.answer, solution:q.solution,  
-    questionImg:q.questionImg, optionImg:q.optionImg, solutionImg:q.solutionImg,  
-    questionEn:q.questionEn, optionEn:q.optionEn, solutionEn:q.solutionEn  
-  });  
-  if(q.history[q.history.length-1] !== snap) q.history.push(snap);  
-  if(q.history.length>50) q.history.shift();  
-  q.redo = [];  
-}  
-  
-/* render list */  
-function renderList(){  
-  const list = $('list'); list.innerHTML = '';  
-  
-  $('totalQ').textContent = 'Total Questions: ' + questions.length;
-
-  if(!questions.length){ list.innerHTML = '<div class="muted">No questions yet. Paste JSON and click Import.</div>'; return; }  
-  questions.forEach((q, index)=>{  
-    const card = document.createElement('div'); card.className='card';  
-  
-    const hdr = document.createElement('div'); hdr.style.display='flex'; hdr.style.justifyContent='space-between'; hdr.style.alignItems='center';  
-    const left = document.createElement('div');  
-    const title = document.createElement('div'); title.style.fontWeight='700'; title.textContent = q.question || '(Empty Question)';  
-    left.appendChild(title);  
-    const meta = document.createElement('div'); meta.className='muted meta-row';  
-    const num = document.createElement('span'); num.className='number-badge'; num.style.fontSize='13px'; num.textContent = `Q.${q.no||index+1}`;  
-    const metaText = document.createElement('span'); metaText.textContent = `${q.module || 'General'} | ${q.language || 'auto'}`;  
-    meta.appendChild(num); meta.appendChild(metaText);  
-    left.appendChild(meta);  
-  
-    const right = document.createElement('div'); right.style.display='flex'; right.style.gap='6px';  
-    right.appendChild(iconBtn('fa-language','Translate', ()=> translateQuestion(q.id)));  
-    right.appendChild(iconBtn('fa-undo','Undo', ()=> undoQ(q.id)));  
-    right.appendChild(iconBtn('fa-redo','Redo', ()=> redoQ(q.id)));  
-    right.appendChild(iconBtn('fa-save','Save', ()=> saveQ(q.id)));  
-    right.appendChild(iconBtn('fa-trash','Delete', ()=> { if(confirm('Delete this question?')) deleteQ(q.id); }));  
-    hdr.appendChild(left); hdr.appendChild(right);  
-    card.appendChild(hdr);  
-  
-    const body = document.createElement('div'); body.style.marginTop='8px';  
-    if(q.questionImg && q.questionImg.dataURL){ const im=document.createElement('img'); im.src=q.questionImg.dataURL; im.className='img-preview'; body.appendChild(im); }  
-  
-    const qDiv = document.createElement('div'); qDiv.contentEditable = true; qDiv.style.fontWeight='600'; qDiv.style.marginTop='8px'; qDiv.textContent = q.question;  
-    qDiv.addEventListener('input', ()=> { q.question = qDiv.textContent; pushHistory(q); saveState(); });  
-    qDiv.addEventListener('blur', ()=> renderList()); 
-    body.appendChild(qDiv);  
-  
-    const enToggle = document.createElement('button'); enToggle.className='toggle-en'; enToggle.textContent = (q.questionEn || (q.optionEn && q.optionEn.some(x=>x))) ? 'Show / Edit English' : 'Add English';  
-    enToggle.style.marginTop='6px';  
-    body.appendChild(enToggle);  
-  
-    const enBlock = document.createElement('div'); enBlock.className='en-block'; enBlock.style.display = (q.questionEn || (q.optionEn && q.optionEn.some(x=>x))) ? 'block' : 'none';  
-  
-    const enQLabel = document.createElement('div'); enQLabel.style.fontWeight='600'; enQLabel.style.marginTop='4px'; enQLabel.textContent = 'English Question:';  
-    const enQ = document.createElement('div'); enQ.contentEditable = true; enQ.style.fontWeight='600'; enQ.style.marginBottom='6px';  
-    enQ.textContent = q.questionEn || '';  
-    enQ.addEventListener('input', ()=> { q.questionEn = enQ.textContent; pushHistory(q); saveState(); });  
-    enBlock.appendChild(enQLabel); enBlock.appendChild(enQ);  
-  
-    const table = document.createElement('table'); table.className='preview-table';  
-    for(let i=0;i<4;i++){  
-      const tr=document.createElement('tr');  
-      const td1=document.createElement('td'); td1.textContent = ['A','B','C','D'][i];  
-      const td2=document.createElement('td');  
-      const optDiv=document.createElement('div'); optDiv.contentEditable=true; optDiv.textContent = q.option[i] || '';  
-      optDiv.addEventListener('input', ()=> { q.option[i] = optDiv.textContent; pushHistory(q); saveState(); });  
-      optDiv.addEventListener('blur', ()=> renderList()); 
-      td2.appendChild(optDiv);  
-      if(q.optionImg && q.optionImg[i] && q.optionImg[i].dataURL){ const im=document.createElement('img'); im.src=q.optionImg[i].dataURL; im.className='img-preview'; td2.appendChild(im); }  
-      tr.appendChild(td1); tr.appendChild(td2); table.appendChild(tr);  
-    }  
-    body.appendChild(table);  
-  
-    const enTable = document.createElement('table'); enTable.className='preview-table';  
-    for(let i=0;i<4;i++){  
-      const tr=document.createElement('tr');  
-      const td1=document.createElement('td'); td1.textContent = ['A','B','C','D'][i];  
-      const td2=document.createElement('td');  
-      const optDiv=document.createElement('div'); optDiv.contentEditable=true; optDiv.textContent = (q.optionEn && q.optionEn[i]) ? q.optionEn[i] : '';  
-      optDiv.addEventListener('input', ()=> { q.optionEn = q.optionEn || [null,null,null,null]; q.optionEn[i] = optDiv.textContent; pushHistory(q); saveState(); });  
-      td2.appendChild(optDiv);  
-      tr.appendChild(td1); tr.appendChild(td2); enTable.appendChild(tr);  
-    }  
-    enBlock.appendChild(enTable);  
-  
-    const ans = document.createElement('div'); ans.style.marginTop='6px'; ans.innerHTML = `<b>Answer:</b> <span contenteditable="true" style="border-bottom:1px dashed #999; padding:0 4px;">${q.answer||''}</span>`;  
-    ans.querySelector('span').addEventListener('input', (e)=>{ q.answer = e.target.textContent; pushHistory(q); saveState(); });  
-    ans.querySelector('span').addEventListener('blur', ()=> renderList()); 
-    body.appendChild(ans);  
-  
-    const solEditLabel=document.createElement('div'); solEditLabel.style.marginTop='8px'; solEditLabel.innerHTML='<b>Solution / Explain:</b>';
-    const solEdit=document.createElement('div'); solEdit.style.marginTop='2px'; solEdit.contentEditable=true; solEdit.textContent = q.solution || '';  
-    solEdit.style.padding = "4px"; solEdit.style.border = "1px solid #eee";
-    solEdit.addEventListener('input', ()=>{ q.solution = solEdit.textContent; pushHistory(q); saveState(); });  
-    solEdit.addEventListener('blur', ()=> renderList()); 
-    body.appendChild(solEditLabel);
-    body.appendChild(solEdit);  
-    if(q.solutionImg && q.solutionImg.dataURL){ const im=document.createElement('img'); im.src=q.solutionImg.dataURL; im.className='img-preview'; body.appendChild(im); }  
-  
-    const enSolLabel = document.createElement('div'); enSolLabel.style.marginTop='8px'; enSolLabel.textContent = 'Solution (English):';  
-    const enSolEdit = document.createElement('div'); enSolEdit.contentEditable=true; enSolEdit.textContent = q.solutionEn || '';  
-    enSolEdit.addEventListener('input', ()=>{ q.solutionEn = enSolEdit.textContent; pushHistory(q); saveState(); });  
-    enBlock.appendChild(enSolLabel); enBlock.appendChild(enSolEdit);  
-  
-    enToggle.addEventListener('click', ()=> {  
-      enBlock.style.display = enBlock.style.display === 'none' ? 'block' : 'none';  
-    });  
-  
-    body.appendChild(enBlock);  
-
-    /* ---------------- INDICATOR / VALIDATION IN UI ---------------- */
-    let errors = [];
-    if (!q.question || q.question.trim() === '') errors.push("Question");
-    
-    let missingOpts = [];
-    for(let i=0; i<4; i++){
-      if(!q.option[i] || q.option[i].trim() === '') missingOpts.push(['A','B','C','D'][i]);
-    }
-    if(missingOpts.length > 0) errors.push("Option (" + missingOpts.join(',') + ")");
-
-    let ansText = (q.answer || '').trim().toUpperCase();
-    if(!ansText) errors.push("Answer");
-    else if(!['A','B','C','D'].includes(ansText)) errors.push("Answer must be A/B/C/D");
-
-    if(!q.solution || q.solution.trim() === '') errors.push("Explain");
-
-    if(errors.length > 0){
-      const errBox = document.createElement('div');
-      errBox.className = 'error-box';
-      errBox.innerHTML = `<i class="fa fa-exclamation-triangle"></i> <div><b>Missing:</b> ${errors.join(' | ')}</div>`;
-      body.appendChild(errBox);
-    }
-    /* ------------------------------------------------------------- */
-
-    card.appendChild(body);  
-    list.appendChild(card);  
-  });  
-}  
-  
-/* icon helper */  
-function iconBtn(cls,title,fn){  
-  const b=document.createElement('button'); b.className='icon-btn'; b.title=title; b.innerHTML = `<i class="fa ${cls}"></i>`;  
-  b.addEventListener('click', (ev)=>{ ev.stopPropagation(); fn(); });  
-  return b;  
-}  
-  
-/* delete, save, undo, redo */  
-function deleteQ(id){ questions = questions.filter(q=>q.id!==id); saveState(); renderList(); }  
-function saveQ(id){ const q = questions.find(x=>x.id===id); if(q){ pushHistory(q); saveState(); alert('Saved'); } }  
-  
-function undoQ(id){  
-  const q = questions.find(x=>x.id===id); if(!q || !q.history || q.history.length<=1){ alert('No undo'); return; }  
-  const cur = q.history.pop(); q.redo = q.redo || []; q.redo.push(cur);  
-  const prev = q.history[q.history.length-1]; const obj = JSON.parse(prev);  
-  Object.assign(q, obj);  
-  saveState(); renderList();  
-}  
-function redoQ(id){  
-  const q = questions.find(x=>x.id===id); if(!q || !q.redo || q.redo.length===0){ alert('No redo'); return; }  
-  const snap = q.redo.pop(); q.history.push(snap); const obj = JSON.parse(snap);  
-  Object.assign(q,obj);  
-  saveState(); renderList();  
-}  
-  
-/* ---------------- Translate ---------------- */  
-async function translateText(text, sl='auto', tl='en'){  
-  if(!text) return '';  
-  try{  
-    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=' + sl + '&tl=' + tl + '&dt=t&q=' + encodeURIComponent(text);  
-    const res = await fetch(url);  
-    if(!res.ok) throw new Error('Translate failed: ' + res.status);  
-    const data = await res.json();  
-    if(!Array.isArray(data) || !Array.isArray(data[0])) return '';  
-    return data[0].map(seg=>seg[0]).join('') || '';  
-  }catch(e){ console.warn(e); return ''; }  
-}  
-  
-/* Translate one question (HI -> EN) */  
-async function translateQuestion(id){  
-  const q = questions.find(x=>x.id===id); if(!q) return;  
-  
-  if(String(q.module||'').trim().toLowerCase() === 'hindi'){ 
-    q.questionEn = q.question;
-    q.optionEn = [...q.option];
-    q.solutionEn = q.solution;
-    pushHistory(q); 
-    saveState(); 
-    renderList(); 
-    alert('हिंदी मॉड्यूल होने के कारण टेक्स्ट को ट्रांसलेट नहीं किया गया, बल्कि सीधा कॉपी कर दिया गया है।'); 
-    return; 
-  }  
-
-  const needs = (q.language==='hi' || isHindi(q.question) || isHindi(q.solution) || q.option.some(o=>isHindi(o)));  
-  if(!needs){ alert('No Hindi detected to translate'); return; }  
-  q.questionEn = await translateText(q.question,'hi','en');  
-  q.optionEn = [];  
-  for(let i=0;i<4;i++) q.optionEn[i] = await translateText(q.option[i]||'','hi','en');  
-  q.solutionEn = await translateText(q.solution||'','hi','en');  
-  pushHistory(q); saveState(); renderList(); alert('Translated (HI→EN)');  
-}  
-  
-/* Translate all questions where applicable */  
-$('translateAllBtn').addEventListener('click', async ()=>{  
-  let count = 0;  
-  for(const q of questions){  
-    if(String(q.module||'').trim().toLowerCase() === 'hindi') {
-        q.questionEn = q.question;
-        q.optionEn = [...q.option];
-        q.solutionEn = q.solution;
-        pushHistory(q);
-        count++;
-        continue;
-    }  
-
-    if(q.language==='hi' || isHindi(q.question) || isHindi(q.solution) || q.option.some(o=>isHindi(o))){  
-      q.questionEn = await translateText(q.question,'hi','en');  
-      q.optionEn = [];  
-      for(let i=0;i<4;i++) q.optionEn[i] = await translateText(q.option[i]||'','hi','en');  
-      q.solutionEn = await translateText(q.solution||'','hi','en');  
-      pushHistory(q);  
-      count++;  
-    }  
-  }  
-  saveState(); renderList(); alert('Processed ' + count + ' questions.');  
-});  
-  
-/* ---------------- JSON import/export ---------------- */  
-$('clearJsonBtn').addEventListener('click', ()=>{
-  $('jsonArea').value = '';
-});
-
-$('importBtn').addEventListener('click', ()=>{  
-  let txt = $('jsonArea').value.trim();  
-  if(!txt){ alert('Please paste JSON code to import'); return; }  
-  
-  let parsed;
-  try {  
-    let cleanTxt = txt;
-    // 1. Fix missing zero before decimal (e.g., .33 -> 0.33)
-    cleanTxt = cleanTxt.replace(/:\s*\.([0-9]+)/g, ': 0.$1');
-    // 2. Fix smart quotes
-    cleanTxt = cleanTxt.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
-    // 3. Remove trailing commas before brackets
-    cleanTxt = cleanTxt.replace(/,\s*([\]}])/g, '$1');
-
-    // 4. SMART FIX: Handle Multiple Pasted JSON Arrays like [...] [...]
-    cleanTxt = cleanTxt.replace(/\]\s*\[/g, ',');
-    
-    // 5. SMART FIX: Handle Multiple Pasted JSON Objects like {...} {...}
-    cleanTxt = cleanTxt.replace(/\}\s*\{/g, '},{');
-
-    try {
-        parsed = JSON.parse(cleanTxt);
-    } catch(err1) {
-        // Fallback 1: Missing outer array brackets
-        try {
-            parsed = JSON.parse('[' + cleanTxt + ']');
-        } catch(err2) {
-            // Fallback 2: Function parser for relaxed JSON
-            parsed = (new Function('return [' + cleanTxt.replace(/^\[|\]$/g, '') + ']'))();
-        }
-    }
-  } catch(e) {
-      alert('Invalid JSON! टूल ने अपने आप फिक्स करने की कोशिश की पर सिंटैक्स बहुत ज्यादा गलत है।'); 
-      console.error(e);
-      return;
-  }
-
-  const arr = Array.isArray(parsed) ? parsed : [parsed];  
-  
-  let maxNo = questions.reduce((m,q)=> Math.max(m, Number(q.no||0)), 0);
-  qCounter = maxNo + 1;
-
-  let addedCount = 0;
-  let duplicateCount = 0;
-
-  arr.forEach(o=>{  
-    const newQText = normalizeNewlines(o.question||'').trim();
-
-    // DUPLICATE CHECK
-    const isDuplicate = questions.some(q => (q.question || '').trim() === newQText);
-    if(isDuplicate && newQText !== ''){
-        duplicateCount++;
-        return; // Skip this question
-    }
-
-    const opts = o.option && Array.isArray(o.option) ? o.option.slice(0,4) : [  
-      o.optA,o.optB,o.optC,o.optD  
-    ].map(x=> x==null ? '' : x);  
-    while(opts.length<4) opts.push('');  
-    const optEn = o.optionEn && Array.isArray(o.optionEn) ? o.optionEn.slice(0,4) : [null,null,null,null];  
-    while(optEn.length<4) optEn.push(null);  
-
-    const ent = {  
-      id: uid(),  
-      no: qCounter,  
-      module: o.module||'General',  
-      question: newQText,  
-      questionImg: o.questionImg||null,  
-      option: opts.map(x=>normalizeNewlines(x)),  
-      optionImg: o.optionImg || [null,null,null,null],  
-      answer: (o.answer||'').trim(),  
-      solution: normalizeNewlines(o.solution||''),  
-      solutionImg: o.solutionImg||null,  
-      pm: (o.pm !== undefined && o.pm !== null) ? String(o.pm) : '1',  
-      nm: (o.nm !== undefined && o.nm !== null) ? String(o.nm) : '0',  
-      language: o.language||'',  
-      history: [], redo: [],  
-      questionEn: normalizeNewlines(o.questionEn||'') || null,  
-      optionEn: optEn.map(x=> x==null ? null : normalizeNewlines(x)),  
-      solutionEn: normalizeNewlines(o.solutionEn||'') || null  
-    };  
-    pushHistory(ent);  
-    questions.push(ent); 
-    qCounter++;  
-    addedCount++;
-  });  
-  
-  saveState(); 
-  renderList(); 
-  $('jsonArea').value = ''; 
-  
-  let alertMsg = `Successfully imported ${addedCount} new question(s)!`;
-  if(duplicateCount > 0){
-      alertMsg += `\n(${duplicateCount} डुप्लीकेट सवाल इग्नोर कर दिए गए हैं)`;
-  }
-  alert(alertMsg);  
-});  
-  
-$('exportJson').addEventListener('click', ()=>{  
-  if(!questions.length){ alert("Nothing to export"); return; }
-  const out = questions.map(q=>({  
-    no:q.no, module:q.module, question:q.question, option:q.option, answer:q.answer, solution:q.solution, pm:q.pm, nm:q.nm, language:q.language,  
-    questionEn:q.questionEn||null, optionEn:q.optionEn||null, solutionEn:q.solutionEn||null  
-  }));  
-  const blob = new Blob([JSON.stringify(out,null,2)],{type:'application/json'});  
-  const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='mcq_export.json'; a.click();  
-  setTimeout(()=>URL.revokeObjectURL(url),3000);  
-});  
-  
-$('removeLast').addEventListener('click', ()=>{ if(!questions.length) return; questions.pop(); saveState(); renderList(); });  
-  
-$('resetAll').addEventListener('click', ()=>{  
-  if(!confirm('Clear all questions? This cannot be undone.')) return;  
-  questions = [];  
-  qCounter = 1;   
-  saveState();  
-  renderList();  
-});  
-  
-setInterval(saveState,2000);  
-  
-/* ---------------- DOCX builder ---------------- */  
-function collectMedia(){  
-  const list = [];  
-  questions.forEach((q,qi)=>{  
-    if(q.questionImg && q.questionImg.dataURL) { q.questionImg.qIndex = qi; list.push({qIndex:qi,field:'questionImg',data:q.questionImg}); }  
-    (q.optionImg||[]).forEach((oi,idx)=>{ if(oi && oi.dataURL){ oi.qIndex = qi; list.push({qIndex:qi,field:'optionImg'+idx,data:oi}); } });  
-    if(q.solutionImg && q.solutionImg.dataURL) { q.solutionImg.qIndex = qi; list.push({qIndex:qi,field:'solutionImg',data:q.solutionImg}); }  
-  });  
-  return list;  
-}  
-  
-function drawingXml(rId,cx=4500000,cy=3000000){  
-  return `<w:p><w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="1" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;  
-}  
-  
-function makeRow(name,val,rId,cx,cy){  
-  const img = rId ? drawingXml(rId,cx,cy) : '';  
-  const leftCell = `<w:tc><w:tcPr><w:shd w:fill="FFFFFF"/></w:tcPr><w:p>${xmlRunsWithBreaks(name)}</w:p></w:tc>`;  
-  const rightCell = `<w:tc><w:tcPr><w:shd w:fill="FFF8DC"/></w:tcPr><w:p>${xmlRunsWithBreaks(val)}</w:p>${img}</w:tc>`;  
-  return `<w:tr>${leftCell}${rightCell}</w:tr>`;  
-}  
-  
-function buildTableXml(q,rmap){  
-  let rows='';  
-  rows += makeRow('Module', q.module||'', null);  
-  rows += makeRow('questionno', q.no||q.id||'', null);  
-  rows += makeRow('Question', q.question||'', rmap.questionImg, rmap.questionCx, rmap.questionCy);  
-  rows += makeRow('Type','mcq',null);  
-  for(let i=0;i<4;i++) rows += makeRow('option', q.option[i]||'', rmap['optionImg'+i], rmap['optionImg'+i+'Cx'], rmap['optionImg'+i+'Cy']);  
-  rows += makeRow('answer', q.answer||'', null);  
-  rows += makeRow('Solution', q.solution||'', rmap.solutionImg, rmap.solutionCx, rmap.solutionCy);  
-  
-  const pmVal = (q.pm !== undefined && q.pm !== null) ? String(q.pm) : '';  
-  const nmVal = (q.nm !== undefined && q.nm !== null) ? String(q.nm) : '';  
-  rows += makeRow('Positive Marks', pmVal, null);  
-  rows += makeRow('Negative Marks', nmVal, null);  
-  rows += makeRow('language', q.language||'', null);  
-  
-  return `<w:tbl><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="6"/><w:left w:val="single" w:sz="6"/><w:right w:val="single" w:sz="6"/><w:bottom w:val="single" w:sz="6"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${rows}</w:tbl><w:p><w:r><w:t></w:t></w:r></w:p>`;  
-}  
-  
-function buildPackageFiles(){  
-  const mediaList = collectMedia();  
-  const mediaFiles = [];  
-  const relIds = [];  
-  mediaList.forEach((it,idx)=>{  
-    const d = it.data; const comma = d.dataURL.indexOf(','); const b64 = d.dataURL.slice(comma+1);  
-    const binStr = atob(b64); const u8 = new Uint8Array(binStr.length); for(let j=0;j<binStr.length;j++) u8[j]=binStr.charCodeAt(j);  
-    let ext='png'; if(d.type && d.type.indexOf('jpeg')!==-1) ext='jpg';  
-    const name = `image${idx+1}.${ext}`;  
-    mediaFiles.push({name,type:d.type||('image/'+ext),data:u8,ref:it});  
-    relIds.push('rIdImg'+(idx+1));  
-  });  
-  
-  const rmapPerQ = questions.map(()=>({  
-    questionImg:null, questionCx:0, questionCy:0,  
-    optionImg0:null, optionImg0Cx:0, optionImg0Cy:0,  
-    optionImg1:null, optionImg1Cx:0, optionImg1Cy:0,  
-    optionImg2:null, optionImg2Cx:0, optionImg2Cy:0,  
-    optionImg3:null, optionImg3Cx:0, optionImg3Cy:0,  
-    solutionImg:null, solutionCx:0, solutionCy:0  
-  }));  
-  
-  mediaFiles.forEach((m,idx)=>{  
-    const it = m.ref; const qidx = it.qIndex;  
-    const rId = relIds[idx]; const defCx=4500000, defCy=3000000;  
-    if(it.field==='questionImg'){ rmapPerQ[qidx].questionImg=rId; rmapPerQ[qidx].questionCx=defCx; rmapPerQ[qidx].questionCy=defCy; }  
-    else if(it.field.startsWith('optionImg')){ const n=Number(it.field.replace('optionImg','')); rmapPerQ[qidx]['optionImg'+n]=rId; rmapPerQ[qidx]['optionImg'+n+'Cx']=3500000; rmapPerQ[qidx]['optionImg'+n+'Cy']=2000000; }  
-    else if(it.field==='solutionImg'){ rmapPerQ[qidx].solutionImg=rId; rmapPerQ[qidx].solutionCx=defCx; rmapPerQ[qidx].solutionCy=defCy; }  
-  });  
-  
-  let body='';  
-  questions.forEach((q,qi)=>{  
-    body += buildTableXml(q,rmapPerQ[qi]);  
-    const hasEn = q.questionEn || (q.optionEn && q.optionEn.some(x=>x));  
-    if(hasEn){  
-      const qEn = {  
-        module:q.module, no:q.no, question:q.questionEn||'', option:q.optionEn||['','','',''], answer:q.answer, solution:q.solutionEn||'', pm:q.pm, nm:q.nm, language:'en'  
-      };  
-      body += buildTableXml(qEn, rmapPerQ[qi]);  
-    }  
-  });  
-  
-  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${body}<w:p/><w:sectPr/></w:body></w:document>`;  
-  
-  let rels = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`;  
-  mediaFiles.forEach((m,i)=> rels += `<Relationship Id="${relIds[i]}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.name}"/>`);  
-  rels += `</Relationships>`;  
-  
-  const extMap={}; mediaFiles.forEach(m=> extMap[m.name.split('.').pop()] = m.type);  
-  let ct = `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">`;  
-  ct += `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>`;  
-  Object.keys(extMap).forEach(ext=> ct += `<Default Extension="${ext}" ContentType="${extMap[ext]}"/>`);  
-  ct += `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;  
-  
-  const files = {};  
-  files["[Content_Types].xml"] = ct;  
-  files["_rels/.rels"] = `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;  
-  files["word/document.xml"] = documentXml;  
-  files["word/_rels/document.xml.rels"] = rels;  
-  mediaFiles.forEach(m => files[`word/media/${m.name}`] = m.data);  
-  return files;  
-}  
-  
-function buildZip(files){  
-  const enc = new TextEncoder();  
-  const toBytes = v => v instanceof Uint8Array ? v : enc.encode(v);  
-  function u32(n){ return [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255]; }  
-  let table = window.__crcTable; if(!table){ table = new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c = (c&1)?(0xEDB88320^(c>>>1)):(c>>>1); table[i]=c>>>0;} window.__crcTable = table; }  
-  function crc32(buf){ let crc = ~0; for(let i=0;i<buf.length;i++) crc = (crc>>>8) ^ table[(crc ^ buf[i]) & 0xff]; return (~crc)>>>0; }  
-  
-  const local = [], central = []; let offset = 0;  
-  for(const name in files){  
-    const data = toBytes(files[name]); const fname = enc.encode(name);  
-    const crc = crc32(data); const comp = data.length; const uncomp = data.length;  
-    const lh = new Uint8Array(30 + fname.length);  
-    lh.set([0x50,0x4b,0x03,0x04],0); lh[4]=20; lh[5]=0; lh[6]=0; lh[7]=0; lh[8]=0;  
-    lh.set(u32(crc),14); lh.set(u32(comp),18); lh.set(u32(uncomp),22);  
-    lh[26] = fname.length & 0xff; lh[27] = (fname.length>>8)&0xff; lh.set(fname,30);  
-    local.push(lh); local.push(data);  
-    const ch = new Uint8Array(46 + fname.length);  
-    ch.set([0x50,0x4b,0x01,0x02],0); ch[4]=20; ch[5]=0; ch[6]=20; ch[7]=0;  
-    ch.set(u32(crc),16); ch.set(u32(comp),20); ch.set(u32(uncomp),24);  
-    ch[28] = fname.length & 0xff; ch[29] = (fname.length>>8)&0xff;  
-    ch.set(u32(offset),42); ch.set(fname,46);  
-    central.push(ch);  
-    offset += lh.length + data.length;  
-  }  
-  const centralSize = central.reduce((s,c)=>s+c.length,0);  
-  const eocd = new Uint8Array(22); eocd.set([0x50,0x4b,0x05,0x06],0);  
-  const entries = central.length; eocd[8]=entries & 0xff; eocd[9]=(entries>>8)&0xff; eocd[10]=eocd[8]; eocd[11]=eocd[9];  
-  const cdStart = offset; eocd.set(u32(centralSize),12); eocd.set(u32(cdStart),16);  
-  const out = new Uint8Array(offset + centralSize + eocd.length);  
-  let p=0; local.forEach(part=>{ out.set(part,p); p+=part.length; }); central.forEach(c=>{ out.set(c,p); p+=c.length; }); out.set(eocd,p);  
-  return new Blob([out], {type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});  
-}  
-  
-/* ------------- Export DOCX button with Validation Popup ------------- */
-$('exportBtn').addEventListener('click', ()=>{  
-  if(!questions.length){ alert('पहले कम से कम एक प्रश्न Import करो!'); return; }  
-  
-  // Validation Check loop
-  let allErrors = [];
-  questions.forEach((q, i) => {
-    let err = [];
-    if(!q.question || q.question.trim() === '') err.push("Question");
-    for(let j=0; j<4; j++){
-      if(!q.option[j] || q.option[j].trim() === '') err.push("Option " + ['A','B','C','D'][j]);
-    }
-    if(!q.answer || !['A','B','C','D'].includes(q.answer.trim().toUpperCase())) err.push("Answer (A-D)");
-    if(!q.solution || q.solution.trim() === '') err.push("Explanation");
-
-    if(err.length > 0) allErrors.push(`Q.${q.no || i+1}: ${err.join(', ')} missing/invalid`);
+  // -- NIGHT MODE --
+  $('themeToggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      const isDark = document.body.classList.contains('dark-mode');
+      $('themeToggle').innerHTML = isDark ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
+      $('themeToggle').style.color = isDark ? '#fbbf24' : '#eab308';
   });
 
-  if(allErrors.length > 0){
-     alert("⚠️ EXPORT BLOCKED!\n\nनीचे दिए गए सवालों में कमियां हैं, पहले उन्हें ठीक करें:\n\n" + allErrors.join("\n"));
-     return; // Export stopped
+  // -- SEARCH LOGIC --
+  $('searchQuestions').addEventListener('keyup', function(e) {
+      const term = e.target.value.toLowerCase();
+      const cards = document.querySelectorAll('#listB .card');
+      cards.forEach(card => {
+          const text = card.innerText.toLowerCase();
+          card.style.display = text.includes(term) ? "block" : "none";
+      });
+  });
+
+  // -- CUSTOM TABLES (FIXED GAP ISSUE - Removed <br> wrappers) --
+  window.insertMatchTable = function() {
+      const tableHtml = `<table width="100%" class="match-table" style="width:100%; border-collapse:collapse; border:none; margin:0px;"><tbody><tr><td width="50%" style="width:50%; vertical-align:top; border:none; padding:4px;"><b>सूची-I</b><br>1. <br>2. <br>3. </td><td width="50%" style="width:50%; vertical-align:top; border:none; padding:4px;"><b>सूची-II</b><br>a. <br>b. <br>c. </td></tr></tbody></table>`;
+      document.execCommand('insertHTML', false, tableHtml);
+  }
+  
+  window.insertStandardTable = function() {
+      const tableHtml = `<table width="100%" border="1" style="width:100%; border-collapse:collapse; margin:0px; border:1px solid #ccc;"><tbody><tr><td style="padding:5px;">Column 1</td><td style="padding:5px;">Column 2</td></tr><tr><td style="padding:5px;">Data 1</td><td style="padding:5px;">Data 2</td></tr></tbody></table>`;
+      document.execCommand('insertHTML', false, tableHtml);
   }
 
-  // File Generation
-  questions.forEach((q,qi)=>{  
-    if(q.questionImg) q.questionImg.qIndex = qi;  
-    if(q.optionImg) q.optionImg.forEach((img,idx)=>{ if(img) img.qIndex = qi; });  
-    if(q.solutionImg) q.solutionImg.qIndex = qi;  
+  function uid(){ return 'q'+(Date.now().toString(36))+(Math.random().toString(36).slice(2,6)); }  
+  function isHindi(s){ return /[\u0900-\u097F]/.test(s||''); }  
+  function normalizeNewlines(s){ if(s==null) return ''; return String(s).replace(/\\n/g,'\n').replace(/\/n/g,'\n'); }  
+  
+  // -- UNLIMITED STORAGE WITH INDEXED DB (localforage) --
+  async function loadState(){  
+    try{ 
+        const raw = await localforage.getItem(STORAGE_KEY); 
+        if(raw){ 
+            questions = raw.questions || []; 
+            qCounter = raw.qCounter || 1; 
+        } else { 
+            questions = []; qCounter = 1; 
+        } 
+    }catch(e){ questions=[]; qCounter=1; console.error(e); }  
+    renderList();  
+  }  
+  
+  function saveState(){ 
+      localforage.setItem(STORAGE_KEY, {questions, qCounter}).catch(e => console.error("Save Error:", e)); 
+  }  
+  
+  function pushHistory(q){  
+    q.history = q.history || [];  
+    const snap = JSON.stringify({ question:q.question, option:[...q.option], answer:q.answer, solution:q.solution, questionEn:q.questionEn, optionEn:q.optionEn, solutionEn:q.solutionEn });  
+    if(q.history[q.history.length-1] !== snap) q.history.push(snap);  
+    if(q.history.length>50) q.history.shift(); q.redo = [];  
+  }  
+
+  function updateDropdownStats() {
+      const counts = {};
+      questions.forEach(q => { counts[q.module || 'General'] = (counts[q.module || 'General'] || 0) + 1; });
+      let html = `<div style='font-weight:bold; margin-bottom:5px; border-bottom:1px solid #ccc; padding-bottom:5px;'>Total: ${questions.length}</div>`;
+      for(let m in counts) { html += `<div style='font-size:13px; display:flex; justify-content:space-between; margin-bottom:2px;'><span>${m}:</span> <b>${counts[m]}</b></div>`; }
+      if(questions.length === 0) html = `<div style='font-size:12px; color:#888;'>No Data</div>`;
+      $('moduleDropdown').innerHTML = html;
+      $('totalQBtn').innerHTML = `Total: ${questions.length} <i class="fa fa-caret-down"></i>`;
+  }
+  
+  function renderList(){  
+    const list = $('listB'); list.innerHTML = ''; 
+    updateDropdownStats();
+    
+    if(!questions.length){ list.innerHTML = '<div class="muted" style="padding: 20px; text-align: center;">No questions yet. Paste JSON or Upload DOCX.</div>'; return; }  
+
+    questions.forEach((q, index)=>{  
+      const card = document.createElement('div'); card.className='card';  
+      const hdr = document.createElement('div'); hdr.style.display='flex'; hdr.style.justifyContent='space-between'; hdr.style.alignItems='center';  
+      
+      const meta = document.createElement('div'); meta.className='muted'; meta.style.display='flex'; meta.style.gap='10px'; meta.style.alignItems='center'; 
+      const num = document.createElement('span'); num.className='number-badge'; num.style.fontSize='12px'; num.textContent = `Q.${q.no||index+1}`; 
+      const metaText = document.createElement('span'); metaText.style.fontWeight='600'; metaText.textContent = `${q.module || 'General'}`; 
+      meta.appendChild(num); meta.appendChild(metaText); hdr.appendChild(meta);  
+      
+      const right = document.createElement('div'); right.style.display='flex'; right.style.gap='6px';  
+      
+      const transBtn = iconBtn('fa-language','Translate', ()=> { translateQuestion(q.id); });
+      transBtn.id = `transBtn_${q.id}`;
+      right.appendChild(transBtn);
+      
+      right.appendChild(iconBtn('fa-undo','Undo', ()=> undoQ(q.id))); 
+      right.appendChild(iconBtn('fa-redo','Redo', ()=> redoQ(q.id))); 
+      right.appendChild(iconBtn('fa-trash','Delete', ()=> { if(confirm('Delete this question?')) deleteQ(q.id); }));  
+      hdr.appendChild(right); card.appendChild(hdr);  
+      
+      const body = document.createElement('div'); body.style.marginTop='8px';  
+      
+      const qDiv = document.createElement('div'); qDiv.contentEditable = true; qDiv.style.fontWeight='600'; qDiv.style.marginTop='8px'; qDiv.style.padding='6px'; qDiv.style.border='1px dashed var(--border)'; qDiv.style.borderRadius='6px'; qDiv.style.outline='none';
+      qDiv.innerHTML = q.question || ''; 
+      qDiv.addEventListener('input', ()=> { q.question = qDiv.innerHTML; pushHistory(q); saveState(); }); 
+      body.appendChild(qDiv);  
+      
+      const enToggle = document.createElement('button'); 
+      enToggle.textContent = (q.questionEn || (q.optionEn && q.optionEn.some(x=>x))) ? 'Show / Edit English' : 'Add English'; 
+      enToggle.style.marginTop='6px'; enToggle.style.cursor='pointer'; enToggle.style.background='transparent'; enToggle.style.border='0'; enToggle.style.color='#0b74ff'; enToggle.style.fontWeight='600';
+      body.appendChild(enToggle);  
+
+      const enBlock = document.createElement('div'); 
+      enBlock.style.display = (q.questionEn || (q.optionEn && q.optionEn.some(x=>x))) ? 'block' : 'none';  
+      enBlock.style.background = 'var(--panel-bg)'; enBlock.style.padding = '10px'; enBlock.style.marginTop = '8px'; enBlock.style.borderRadius = '6px'; enBlock.style.border = '1px solid var(--border)';
+
+      const enQLabel = document.createElement('div'); enQLabel.style.fontWeight='600'; enQLabel.textContent = 'English Question:'; 
+      const enQ = document.createElement('div'); enQ.contentEditable = true; enQ.style.fontWeight='600'; enQ.style.marginBottom='6px'; enQ.style.padding='6px'; enQ.style.border='1px dashed var(--border)'; enQ.style.outline='none';
+      enQ.innerHTML = q.questionEn || ''; enQ.addEventListener('input', ()=> { q.questionEn = enQ.innerHTML; pushHistory(q); saveState(); }); 
+      enBlock.appendChild(enQLabel); enBlock.appendChild(enQ);  
+      
+      const enTable = document.createElement('table'); enTable.className='preview-table'; 
+      for(let i=0;i<4;i++){ 
+          const tr=document.createElement('tr'); const td1=document.createElement('td'); td1.textContent = ['A','B','C','D'][i]; td1.style.width='30px'; td1.style.textAlign='center'; td1.style.fontWeight='bold';
+          const td2=document.createElement('td'); const optDiv=document.createElement('div'); optDiv.contentEditable=true; optDiv.style.outline='none';
+          optDiv.innerHTML = (q.optionEn && q.optionEn[i]) ? q.optionEn[i] : ''; 
+          optDiv.addEventListener('input', ()=> { q.optionEn = q.optionEn || [null,null,null,null]; q.optionEn[i] = optDiv.innerHTML; pushHistory(q); saveState(); }); 
+          td2.appendChild(optDiv); tr.appendChild(td1); tr.appendChild(td2); enTable.appendChild(tr); 
+      } enBlock.appendChild(enTable);
+
+      const enSolLabel = document.createElement('div'); enSolLabel.style.marginTop='8px'; enSolLabel.style.fontWeight='600'; enSolLabel.textContent = 'Solution (English):'; 
+      const enSolEdit = document.createElement('div'); enSolEdit.contentEditable=true; enSolEdit.style.padding='8px'; enSolEdit.style.border='1px solid var(--border)'; enSolEdit.style.borderRadius='6px'; enSolEdit.style.outline='none';
+      enSolEdit.innerHTML = q.solutionEn || ''; enSolEdit.addEventListener('input', ()=>{ q.solutionEn = enSolEdit.innerHTML; pushHistory(q); saveState(); }); 
+      enBlock.appendChild(enSolLabel); enBlock.appendChild(enSolEdit);  
+      
+      enToggle.addEventListener('click', ()=> { enBlock.style.display = enBlock.style.display === 'none' ? 'block' : 'none'; }); 
+      body.appendChild(enBlock);
+      
+      const table = document.createElement('table'); table.className='preview-table';  
+      for(let i=0;i<4;i++){ 
+          const tr=document.createElement('tr'); const td1=document.createElement('td'); td1.textContent = ['A','B','C','D'][i]; td1.style.width='30px'; td1.style.textAlign='center'; td1.style.fontWeight='bold';
+          const td2=document.createElement('td'); const optDiv=document.createElement('div'); optDiv.contentEditable=true; optDiv.style.outline='none';
+          optDiv.innerHTML = q.option[i] || ''; 
+          optDiv.addEventListener('input', ()=> { q.option[i] = optDiv.innerHTML; pushHistory(q); saveState(); }); 
+          td2.appendChild(optDiv); tr.appendChild(td1); tr.appendChild(td2); table.appendChild(tr); 
+      } body.appendChild(table);  
+      
+      const ans = document.createElement('div'); ans.style.marginTop='8px'; ans.innerHTML = `<b>Answer:</b> <span contenteditable="true" style="border-bottom:1px dashed #999; padding:0 6px; color:#0ea5e9; font-weight:bold; outline:none;">${q.answer||''}</span>`; ans.querySelector('span').addEventListener('input', (e)=>{ q.answer = e.target.textContent; pushHistory(q); saveState(); }); body.appendChild(ans);  
+      
+      const solEditLabel=document.createElement('div'); solEditLabel.style.marginTop='8px'; solEditLabel.innerHTML='<b>Solution / Explain:</b>'; 
+      const solEdit=document.createElement('div'); solEdit.style.marginTop='2px'; solEdit.contentEditable=true; solEdit.style.outline='none';
+      solEdit.innerHTML = q.solution || ''; 
+      solEdit.style.padding = "8px"; solEdit.style.border = "1px solid var(--border)"; solEdit.style.borderRadius = "6px";
+      solEdit.addEventListener('input', ()=>{ q.solution = solEdit.innerHTML; pushHistory(q); saveState(); }); 
+      body.appendChild(solEditLabel); body.appendChild(solEdit); 
+      
+      card.appendChild(body); list.appendChild(card);  
+    });  
+  }  
+  
+  function iconBtn(cls,title,fn){ const b=document.createElement('button'); b.className='icon-btn'; b.title=title; b.innerHTML = `<i class="fa ${cls}"></i>`; b.addEventListener('click', (ev)=>{ ev.stopPropagation(); fn(); }); return b; }  
+  function deleteQ(id){ questions = questions.filter(q=>q.id!==id); saveState(); renderList(); }  
+  function undoQ(id){ const q = questions.find(x=>x.id===id); if(!q || !q.history || q.history.length<=1){ alert('No undo'); return; } const cur = q.history.pop(); q.redo = q.redo || []; q.redo.push(cur); const prev = q.history[q.history.length-1]; const obj = JSON.parse(prev); Object.assign(q, obj); saveState(); renderList(); }  
+  function redoQ(id){ const q = questions.find(x=>x.id===id); if(!q || !q.redo || q.redo.length===0){ alert('No redo'); return; } const snap = q.redo.pop(); q.history.push(snap); const obj = JSON.parse(snap); Object.assign(q,obj); saveState(); renderList(); }  
+  
+  /* ---------------- Translate (User's Exact Logic + HTML Safe Wrapper) ---------------- */  
+  async function translateTextRaw(text, sl='auto', tl='en'){  
+    if(!text) return '';  
+    try{  
+      const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=' + sl + '&tl=' + tl + '&dt=t&q=' + encodeURIComponent(text);  
+      const res = await fetch(url);  
+      if(!res.ok) throw new Error('Translate failed: ' + res.status);  
+      const data = await res.json();  
+      if(!Array.isArray(data) || !Array.isArray(data[0])) return '';  
+      return data[0].map(seg=>seg[0]).join('') || '';  
+    }catch(e){ console.warn(e); return ''; }  
+  }  
+
+  // Wrapper to protect HTML structure while using the above translateText logic
+  async function translateText(htmlStr, sl='hi', tl='en') {
+      if(!htmlStr) return '';
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlStr;
+      
+      const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
+      const textNodes = [];
+      let node;
+      while ((node = walker.nextNode())) {
+          if (node.nodeValue.trim() !== '') textNodes.push(node);
+      }
+      
+      if (textNodes.length === 0) return htmlStr;
+
+      for (let i = 0; i < textNodes.length; i++) {
+          textNodes[i].nodeValue = await translateTextRaw(textNodes[i].nodeValue, sl, tl);
+          await new Promise(r => setTimeout(r, 200)); // Small delay to avoid API block
+      }
+      return tempDiv.innerHTML;
+  }
+  
+  /* Translate one question (HI -> EN) */  
+  async function translateQuestion(id){  
+    const q = questions.find(x=>x.id===id); if(!q) return;  
+    const btn = $(`transBtn_${id}`);
+    if(btn) btn.innerHTML = `<i class="fa fa-spinner fa-spin"></i>`;
+    
+    if(String(q.module||'').trim().toLowerCase() === 'hindi'){ 
+      q.questionEn = q.question;
+      q.optionEn = [...q.option];
+      q.solutionEn = q.solution;
+      pushHistory(q); 
+      saveState(); 
+      renderList(); 
+      alert('हिंदी मॉड्यूल होने के कारण टेक्स्ट को ट्रांसलेट नहीं किया गया, बल्कि सीधा कॉपी कर दिया गया है।'); 
+      return; 
+    }  
+  
+    const needs = (q.language==='hi' || isHindi(q.question) || isHindi(q.solution) || q.option.some(o=>isHindi(o)));  
+    if(!needs){ alert('No Hindi detected to translate'); if(btn) btn.innerHTML = `<i class="fa fa-language"></i>`; return; }  
+    
+    q.questionEn = await translateText(q.question,'hi','en');  
+    q.optionEn = [];  
+    for(let i=0;i<4;i++) q.optionEn[i] = await translateText(q.option[i]||'','hi','en');  
+    q.solutionEn = await translateText(q.solution||'','hi','en');  
+    pushHistory(q); saveState(); renderList(); alert('Translated (HI→EN)');  
+  }  
+    
+  /* Translate all questions where applicable */  
+  $('translateAllBtn').addEventListener('click', async ()=>{  
+    const btn = $('translateAllBtn');
+    btn.innerHTML = `<i class="fa fa-spinner fa-spin"></i> Translating...`;
+    btn.disabled = true;
+
+    let count = 0;  
+    for(const q of questions){  
+      if(String(q.module||'').trim().toLowerCase() === 'hindi') {
+          q.questionEn = q.question;
+          q.optionEn = [...q.option];
+          q.solutionEn = q.solution;
+          pushHistory(q);
+          count++;
+          continue;
+      }  
+  
+      if(q.language==='hi' || isHindi(q.question) || isHindi(q.solution) || q.option.some(o=>isHindi(o))){  
+        q.questionEn = await translateText(q.question,'hi','en');  
+        q.optionEn = [];  
+        for(let i=0;i<4;i++) q.optionEn[i] = await translateText(q.option[i]||'','hi','en');  
+        q.solutionEn = await translateText(q.solution||'','hi','en');  
+        pushHistory(q);  
+        count++;  
+      }  
+    }  
+    saveState(); renderList(); 
+    btn.innerHTML = `<i class="fa fa-language"></i> Translate All`;
+    btn.disabled = false;
+    alert('Processed ' + count + ' questions.');  
+  });
+  
+  $('clearJsonBtnB').addEventListener('click', ()=>{ $('jsonAreaB').value = ''; });
+  
+  // -- DEMO JSON BUTTON (FIXED DOUBLE <br>) --
+  $('demoJsonBtn').addEventListener('click', ()=>{
+      const demoData = [
+          { "module": "Demo (6 Types)", "question": "<b>1. वस्तुनिष्ठ प्रश्न:</b> राजस्थान की राजधानी क्या है?", "option": ["जयपुर", "जोधपुर", "उदयपुर", "कोटा"], "answer": "A", "solution": "स्पष्ट जानकारी: जयपुर राजस्थान की राजधानी है।", "language": "hi" },
+          { "module": "Demo (6 Types)", "question": "<b>2. कथन-कारण प्रश्न:</b> नीचे दो कथन दिए गए हैं।<br><b>कथन (A):</b> जयपुर को गुलाबी नगर कहा जाता है।<br><b>कारण (R):</b> यहाँ की अधिकांश पुरानी इमारतें गुलाबी रंग की हैं。", "option": ["(A) A और R दोनों सही हैं तथा R, A की सही व्याख्या करता है", "(B) A और R दोनों सही हैं, पर R, A की सही व्याख्या नहीं करता", "(C) A सही है, R गलत है", "(D) A गलत है, R सही है"], "answer": "A", "solution": "स्पष्ट जानकारी: सवाई रामसिंह द्वितीय ने जयपुर को गुलाबी रंग से रँगवाया था।", "language": "hi" },
+          { "module": "Demo (6 Types)", "question": "<b>3. दो कथन आधारित:</b> निम्न कथनों पर विचार करें:<br><b>कथन-I:</b> हल्दीघाटी का युद्ध 1576 में हुआ था।<br><b>कथन-II:</b> यह युद्ध महाराणा प्रताप और अकबर के बीच लड़ा गया था।", "option": ["(A) कथन-I सही, कथन-II गलत", "(B) कथन-I गलत, कथन-II सही", "(C) दोनों कथन सही", "(D) दोनों कथन गलत"], "answer": "C", "solution": "स्पष्ट जानकारी: 18 जून 1576 को यह युद्ध हुआ था। दोनों कथन पूर्णतः सत्य हैं।", "language": "hi" },
+          { "module": "Demo (6 Types)", "question": "<b>4. मिलान आधारित:</b> सूची-I को सूची-II से सुमेलित करें:<table width=\"100%\" border=\"1\" style=\"width:100%; border-collapse:collapse; margin:0px; border:1px solid #ccc;\"><tbody><tr><td style=\"padding:5px;\"><b>सूची-I (झील)</b></td><td style=\"padding:5px;\"><b>सूची-II (ज़िला)</b></td></tr><tr><td style=\"padding:5px;\">1. नक्की</td><td style=\"padding:5px;\">a. अजमेर</td></tr><tr><td style=\"padding:5px;\">2. आनासागर</td><td style=\"padding:5px;\">b. सिरोही</td></tr></tbody></table><b>कूट:</b>", "option": ["1-b, 2-a", "1-a, 2-b", "1-a, 2-a", "1-b, 2-b"], "answer": "A", "solution": "स्पष्ट जानकारी: नक्की झील सिरोही (माउंट आबू) में और आनासागर अजमेर में है।", "language": "hi" },
+          { "module": "Demo (6 Types)", "question": "<b>5. गलत विकल्प पहचानें:</b> निम्न में से कौन-सा कथन <b>असत्य</b> है?", "option": ["राजस्थान का राज्य पक्षी गोडावण है।", "राजस्थान का राज्य वृक्ष खेजड़ी है।", "राजस्थान का राज्य पशु ऊँट और चिंकारा हैं।", "राजस्थान का राज्य पुष्प कमल है।"], "answer": "D", "solution": "स्पष्ट जानकारी: राजस्थान का राज्य पुष्प <b>रोहिड़ा</b> है, कमल नहीं।", "language": "hi" },
+          { "module": "Demo (6 Types)", "question": "<b>6. कूट आधारित प्रश्न:</b> राजस्थान के बारे में सही कथन चुनें:<br>1. यह भारत का सबसे बड़ा राज्य है।<br>2. यहाँ थार मरुस्थल स्थित है。<br>3. इसकी अंतर्राष्ट्रीय सीमा नेपाल से लगती है。<br><b>कूट:</b>", "option": ["केवल 1 और 2", "केवल 2 और 3", "केवल 1 और 3", "1, 2 और 3"], "answer": "A", "solution": "स्पष्ट जानकारी: राजस्थान की सीमा पाकिस्तान (अंतरराष्ट्रीय) से लगती है, नेपाल से नहीं। अतः कथन 3 गलत है।", "language": "hi" },
+          { "module": "English Module", "question": "What is the synonym of 'Beautiful'?", "option": ["Ugly", "Pretty", "Bad", "Sad"], "answer": "B", "solution": "Pretty means beautiful.", "language": "en" }
+      ];
+      $('jsonAreaB').value = JSON.stringify(demoData, null, 2);
+      alert('डेमो JSON बॉक्स में भर दिया गया है। अब "Import JSON" बटन दबाएँ।');
+  });
+
+  // -- IMPORT JSON --
+  $('importBtnB').addEventListener('click', ()=>{ 
+    let txt = $('jsonAreaB').value.trim(); if(!txt){ alert('Please paste JSON code to import'); return; } 
+    let parsed; try { let cleanTxt = txt.replace(/:\s*\.([0-9]+)/g, ': 0.$1').replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'").replace(/,\s*([\]}])/g, '$1').replace(/\]\s*\[/g, ',').replace(/\}\s*\{/g, '},{'); try { parsed = JSON.parse(cleanTxt); } catch(err1) { try { parsed = JSON.parse('[' + cleanTxt + ']'); } catch(err2) { parsed = (new Function('return [' + cleanTxt.replace(/^\[|\]$/g, '') + ']'))(); } } } catch(e) { alert('Invalid JSON!'); return; } const arr = Array.isArray(parsed) ? parsed : [parsed]; let maxNo = questions.reduce((m,q)=> Math.max(m, Number(q.no||0)), 0); qCounter = maxNo + 1; let addedCount = 0; 
+    
+    arr.forEach(o=>{ 
+        const newQText = normalizeNewlines(o.question||'').trim(); 
+        const opts = o.option && Array.isArray(o.option) ? o.option.slice(0,4) : [ o.optA,o.optB,o.optC,o.optD ].map(x=> x==null ? '' : x); 
+        while(opts.length<4) opts.push(''); 
+
+        const optEn = o.optionEn && Array.isArray(o.optionEn) ? o.optionEn.slice(0,4) : [null,null,null,null]; 
+        while(optEn.length<4) optEn.push(null); 
+        
+        let ansText = o.answer || ""; if (!ansText && o.correct_index !== undefined) { ansText = ["A", "B", "C", "D"][o.correct_index]; }
+
+        const ent = { 
+            id: uid(), no: qCounter, module: o.module||'General', question: newQText, option: opts.map(x=>normalizeNewlines(x)), answer: ansText.trim(), solution: normalizeNewlines(o.solution || o.exp || o.explanation || ''),
+            language: o.language||'hi', history: [], redo: [],
+            questionEn: normalizeNewlines(o.questionEn||'') || null, optionEn: optEn.map(x=> x==null ? null : normalizeNewlines(x)), solutionEn: normalizeNewlines(o.solutionEn||'') || null 
+        }; 
+        pushHistory(ent); questions.push(ent); qCounter++; addedCount++; 
+    }); 
+    saveState(); renderList(); $('jsonAreaB').value = ''; alert(`Successfully imported ${addedCount} new question(s)!`); 
   });  
-  
-  try{  
-    const files = buildPackageFiles();  
-    const zip = buildZip(files);  
-    const url = URL.createObjectURL(zip); const a=document.createElement('a'); a.href=url; a.download='questions.docx'; a.click();  
-    setTimeout(()=> URL.revokeObjectURL(url),4000);  
-  }catch(e){ console.error(e); alert('Export failed: ' + (e && e.message)); }  
-});  
-  
-/* init */  
-loadState();  
-</script>  
-</body>  
+
+  // -- COPY JSON TO CLIPBOARD --
+  $('copyJsonBtnB').addEventListener('click', ()=>{
+      if(!questions.length){ alert("Copy करने के लिए कोई डेटा नहीं है!"); return; }
+      const out = questions.map(q=>({ 
+          module:q.module, question:q.question, 
+          option: q.option.slice(0, 4), 
+          answer:q.answer, solution:q.solution, language:q.language, questionEn: q.questionEn, 
+          optionEn: q.optionEn.slice(0, 4), 
+          solutionEn: q.solutionEn 
+      }));
+      navigator.clipboard.writeText(JSON.stringify(out, null, 2)).then(() => {
+          alert('✅ JSON सफलता पूर्वक कॉपी हो गया!');
+      }).catch(err => {
+          alert('Copy failed: ' + err);
+      });
+  });
+
+  // -- EXPORT JSON --
+  $('exportJsonB').addEventListener('click', ()=>{ 
+    if(!questions.length){ alert("Nothing to export"); return; } 
+    const out = questions.map(q=>({ 
+        module:q.module, question:q.question, 
+        option: q.option.slice(0, 4), 
+        answer:q.answer, solution:q.solution, language:q.language, questionEn: q.questionEn, 
+        optionEn: q.optionEn.slice(0, 4), 
+        solutionEn: q.solutionEn 
+    })); 
+    const blob = new Blob([JSON.stringify(out,null,2)],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='mockrise_backup.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),3000); 
+  });  
+
+  // ==========================================
+  // PERFECT DOCX EXPORT (ZERO GAP FIX + DYNAMIC LANG TAGS)
+  // ==========================================
+  function convertHtmlToOpenXml(htmlString) {
+      if (!htmlString) return '';
+      let div = document.createElement('div');
+      div.innerHTML = htmlString.replace(/<br\s*\/?>/gi, '[[BR]]');
+      let xml = '<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>';
+
+      function processNode(node, formatting) {
+          let runXml = '';
+          if (node.nodeType === 3) { 
+              let text = node.nodeValue;
+              let parts = text.split('[[BR]]');
+              parts.forEach((part, index) => {
+                  let cleanText = part.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '');
+                  if (cleanText) {
+                      runXml += '<w:r><w:rPr>';
+                      if (formatting.b) runXml += '<w:b/>';
+                      if (formatting.i) runXml += '<w:i/>';
+                      if (formatting.u) runXml += '<w:u w:val="single"/>';
+                      runXml += '</w:rPr><w:t xml:space="preserve">' + cleanText + '</w:t></w:r>';
+                  }
+                  if (index < parts.length - 1) {
+                      runXml += '<w:r><w:br/></w:r>';
+                  }
+              });
+          } else if (node.nodeType === 1) { 
+              let tag = node.tagName.toLowerCase();
+              let newFormatting = { ...formatting };
+              if (tag === 'b' || tag === 'strong') newFormatting.b = true;
+              if (tag === 'i' || tag === 'em') newFormatting.i = true;
+              if (tag === 'u') newFormatting.u = true;
+
+              if (tag === 'table') {
+                  runXml += '</w:p>' + processTable(node) + '<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>';
+              } else if (tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4' || tag === 'blockquote' || tag === 'div' || tag === 'p' || tag === 'li') {
+                  let style = '<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>';
+                  if (tag === 'h1') style = '<w:pStyle w:val="Heading1"/>';
+                  else if (tag === 'h2') style = '<w:pStyle w:val="Heading2"/>';
+                  else if (tag === 'h3') style = '<w:pStyle w:val="Heading3"/>';
+                  else if (tag === 'h4') style = '<w:pStyle w:val="Heading4"/>';
+                  else if (tag === 'blockquote') style = '<w:pStyle w:val="Blockquote"/>';
+
+                  let innerXml = '';
+                  node.childNodes.forEach(child => { innerXml += processNode(child, newFormatting); });
+                  
+                  if(tag === 'li'){
+                      runXml += `</w:p><w:p><w:pPr><w:ind w:left="720"/><w:jc w:val="both"/><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:t>• </w:t></w:r>${innerXml}</w:p><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>`;
+                  } else {
+                      runXml += `</w:p><w:p><w:pPr>${style}</w:pPr>${innerXml}</w:p><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>`;
+                  }
+              } else {
+                  node.childNodes.forEach(child => { runXml += processNode(child, newFormatting); });
+              }
+          }
+          return runXml;
+      }
+
+      function processTable(tableNode) {
+          let tblXml = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tblBorders></w:tblPr>';
+          let rows = tableNode.getElementsByTagName('tr');
+          for (let r of rows) {
+              tblXml += '<w:tr>';
+              let cells = r.getElementsByTagName('td');
+              for (let c of cells) {
+                  tblXml += '<w:tc><w:tcPr><w:tcW w:w="2500" w:type="pct"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>';
+                  Array.from(c.childNodes).forEach(child => { tblXml += processNode(child, {b:false, i:false, u:false}); });
+                  tblXml += '</w:p></w:tc>';
+              }
+              tblXml += '</w:tr>';
+          }
+          tblXml += '</w:tbl>';
+          return tblXml;
+      }
+
+      div.childNodes.forEach(child => { xml += processNode(child, {b:false, i:false, u:false}); });
+      xml += '</w:p>';
+      // Clean up empty paragraphs to prevent gaps
+      xml = xml.replace(/<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"\/><\/w:pPr><\/w:p>/g, ''); 
+      return xml;
+  }
+
+  function makeDocxParagraph(text, isBold = false) {
+      if(!text) return `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>`;
+      let bTag = isBold ? `<w:b/>` : ``;
+      let textXml = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:rPr>${bTag}</w:rPr><w:t xml:space="preserve">${textXml}</w:t></w:r></w:p>`;
+  }
+
+  $('exportBtnB').addEventListener('click', ()=>{ 
+      if(!questions.length){ alert('पहले प्रश्न इम्पोर्ट करें!'); return; }
+      
+      const btn = $('exportBtnB');
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Exporting...';
+      btn.disabled = true;
+
+      let body=''; 
+      let currentModule = '';
+
+      questions.forEach((q, index) => { 
+          let mod = q.module || 'General';
+          if (mod !== currentModule) {
+              body += makeDocxParagraph(`###Section ${mod}`, true);
+              currentModule = mod;
+          }
+
+          const hasEnglish = q.questionEn && q.questionEn.trim() !== '';
+          const isHi = isHindi(q.question);
+          const primaryDirectionTag = isHi ? `#Hindi_directions` : `#English_directions`;
+
+          // If English translation is available and the primary is Hindi, export the English first
+          if (hasEnglish && isHi) {
+              body += makeDocxParagraph(`#English_directions`, true);
+              body += makeDocxParagraph(`#Question ${index + 1}`, true);
+              body += convertHtmlToOpenXml(q.questionEn);
+              body += makeDocxParagraph(`#Options ###A`, true);
+              body += convertHtmlToOpenXml(q.optionEn[0] || q.option[0]);
+              body += makeDocxParagraph(`###B`, true);
+              body += convertHtmlToOpenXml(q.optionEn[1] || q.option[1]);
+              body += makeDocxParagraph(`###C`, true);
+              body += convertHtmlToOpenXml(q.optionEn[2] || q.option[2]);
+              body += makeDocxParagraph(`###D`, true);
+              body += convertHtmlToOpenXml(q.optionEn[3] || q.option[3]);
+              
+              body += makeDocxParagraph(`#Correct_option`, true);
+              body += makeDocxParagraph(q.answer);
+              body += makeDocxParagraph(`#Solution`, true);
+              body += convertHtmlToOpenXml(q.solutionEn || q.solution);
+              body += makeDocxParagraph(`#tags`, true);
+              body += makeDocxParagraph(mod);
+              body += makeDocxParagraph(''); // spacing
+          }
+
+          // Export the Primary Language Block with dynamic direction tag
+          body += makeDocxParagraph(primaryDirectionTag, true);
+          body += makeDocxParagraph(`#Question ${index + 1}`, true);
+          body += convertHtmlToOpenXml(q.question);
+          body += makeDocxParagraph(`#Options ###A`, true);
+          body += convertHtmlToOpenXml(q.option[0]);
+          body += makeDocxParagraph(`###B`, true);
+          body += convertHtmlToOpenXml(q.option[1]);
+          body += makeDocxParagraph(`###C`, true);
+          body += convertHtmlToOpenXml(q.option[2]);
+          body += makeDocxParagraph(`###D`, true);
+          body += convertHtmlToOpenXml(q.option[3]);
+          
+          body += makeDocxParagraph(`#Correct_option`, true);
+          body += makeDocxParagraph(q.answer);
+          body += makeDocxParagraph(`#Solution`, true);
+          body += convertHtmlToOpenXml(q.solution);
+          
+          if (!hasEnglish || !isHi) {
+              body += makeDocxParagraph(`#tags`, true);
+              body += makeDocxParagraph(mod);
+          }
+          body += makeDocxParagraph('');
+      }); 
+
+      const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:body>${body}<w:sectPr/></w:body>
+      </w:document>`; 
+      
+      const zip = new JSZip();
+      
+      const contentTypes = `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+      zip.file("[Content_Types].xml", contentTypes);
+      
+      const rels = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+      zip.folder("_rels").file(".rels", rels);
+      
+      zip.folder("word").file("document.xml", documentXml);
+
+      const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:docDefaults>
+              <w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault>
+          </w:docDefaults>
+          <w:style w:type="paragraph" w:styleId="Normal" w:default="1">
+              <w:name w:val="Normal"/>
+              <w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
+          </w:style>
+          <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:pPr><w:spacing w:after="0"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="48"/></w:rPr></w:style>
+          <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:pPr><w:spacing w:after="0"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:sz w:val="36"/></w:rPr></w:style>
+          <w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:pPr><w:spacing w:after="0"/><w:outlineLvl w:val="2"/></w:pPr><w:rPr><w:b/><w:sz w:val="28"/></w:rPr></w:style>
+          <w:style w:type="paragraph" w:styleId="Heading4"><w:name w:val="heading 4"/><w:pPr><w:spacing w:after="0"/><w:outlineLvl w:val="3"/></w:pPr><w:rPr><w:b/><w:sz w:val="24"/></w:rPr></w:style>
+          <w:style w:type="paragraph" w:styleId="Blockquote"><w:name w:val="Blockquote"/><w:pPr><w:spacing w:after="0"/><w:ind w:left="720"/><w:jc w:val="both"/></w:pPr><w:rPr><w:i/></w:rPr></w:style>
+      </w:styles>`;
+      zip.folder("word").file("styles.xml", stylesXml);
+      
+      const docRels = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+      zip.folder("word").folder("_rels").file("document.xml.rels", docRels);
+      
+      zip.generateAsync({
+          type: "blob", 
+          mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      }).then(function(blob) {
+          const finalBlob = new Blob([blob], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+          const url = window.URL.createObjectURL(finalBlob);
+          const a = document.createElement('a');
+          a.style.display = "none";
+          a.href = url;
+          a.download = 'Mockrise_Export_With_Tags.docx';
+          document.body.appendChild(a);
+          a.click();
+          
+          setTimeout(()=> {
+              document.body.removeChild(a);
+              window.URL.revokeObjectURL(url);
+              btn.innerHTML = '<i class="fa fa-file-word"></i> Export App DOCX (With Tags)';
+              btn.disabled = false;
+          }, 1000);
+      });
+  });
+
+  $('removeLastB').addEventListener('click', ()=>{ if(!questions.length) return; questions.pop(); saveState(); renderList(); });  
+  $('resetAllB').addEventListener('click', ()=>{ if(!confirm('Clear all questions? This cannot be undone.')) return; questions = []; qCounter = 1; saveState(); renderList(); });  
+
+  loadState();  
+})();
+</script>
+</body>
 </html>
