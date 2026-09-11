@@ -14,19 +14,6 @@
   <!-- LocalForage (IndexedDB for UNLIMITED Auto-Save Data) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
-  <!-- MathJax for LaTeX Support -->
-  <script>
-    window.MathJax = {
-      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']] },
-      options: {
-        // Ignored class ensures MathJax does not corrupt the raw editable text
-        ignoreHtmlClass: 'editable-ignore', 
-        processHtmlClass: 'math-preview'
-      }
-    };
-  </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
   <style>
     /* Light Theme */
     body { margin: 0; padding: 0; background: #f3f4f6; font-family: 'Poppins', sans-serif; transition: background 0.3s, color 0.3s; }
@@ -85,7 +72,7 @@
     .en-block { transition: box-shadow 0.5s ease-in-out; }
   </style>
 </head>
-<body class="editable-ignore"> <!-- editable-ignore prevents MathJax from corrupting the whole page HTML automatically -->
+<body>
 
 <div id="containerB">
     <div class="main-wrapper">  
@@ -152,7 +139,7 @@
 
           <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('insertHTML', false, '<br>')" title="Force Line Break"><b>↵ Break</b></button>
           
-          <!-- MATH / LATEX BUTTON -->
+          <!-- SMART MATH BUTTON ADDED BACK -->
           <button class="btn small" style="background:#fef3c7; color:#b45309; border:1px solid #fcd34d;" onclick="insertMath()" title="Insert Math / LaTeX Equation"><b>∑ Math</b></button>
 
           <div class="dropdown-hover" style="margin-left: auto;">
@@ -207,10 +194,20 @@
       });
   });
 
-  // -- MATH INSERT --
+  // -- SMART MATH INSERT (Cursor in the middle) --
   window.insertMath = function() {
-      // Inserts \( \) for LaTeX block safely
-      document.execCommand('insertText', false, '\\(  \\)');
+      const selection = window.getSelection();
+      if (!selection.rangeCount) return;
+      const range = selection.getRangeAt(0);
+      
+      const textNode = document.createTextNode('\\(  \\)');
+      range.insertNode(textNode);
+      
+      // Move cursor exactly between \( and \)
+      range.setStart(textNode, 3);
+      range.setEnd(textNode, 3);
+      selection.removeAllRanges();
+      selection.addRange(range);
   }
 
   // -- CUSTOM TABLES (FIXED GAP ISSUE - Removed <br> wrappers) --
@@ -542,7 +539,7 @@
   });  
 
   // ==========================================
-  // PERFECT DOCX EXPORT (ZERO GAP FIX + DYNAMIC LANG TAGS + PRESERVES LATEX)
+  // PERFECT DOCX EXPORT (ZERO GAP FIX + DYNAMIC LANG TAGS)
   // ==========================================
   function convertHtmlToOpenXml(htmlString) {
       if (!htmlString) return '';
