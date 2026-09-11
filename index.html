@@ -14,6 +14,15 @@
   <!-- LocalForage (IndexedDB for UNLIMITED Auto-Save Data) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
+  <!-- MathJax for LaTeX Support -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']] },
+      startup: { typeset: false } // We will trigger it manually
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
   <style>
     /* Light Theme */
     body { margin: 0; padding: 0; background: #f3f4f6; font-family: 'Poppins', sans-serif; transition: background 0.3s, color 0.3s; }
@@ -70,6 +79,10 @@
     
     /* Animation for English Box visibility */
     .en-block { transition: box-shadow 0.5s ease-in-out; }
+
+    /* Preview Mode Styles */
+    .preview-active .card { border: 2px solid #10b981; }
+    .preview-active div[contenteditable="false"] { background: transparent !important; border: 1px solid transparent !important; }
   </style>
 </head>
 <body>
@@ -81,7 +94,7 @@
       <div class="toolbar">  
         <div>
           <div class="title">Mockrise - MCQ Editor Pro</div>  
-          <div class="muted" style="font-size: 11px;">Dynamic Lang Tags · LaTeX Math Support · Clear Translation</div>  
+          <div class="muted" style="font-size: 11px;">Math Preview Mode · JSON Safe</div>  
         </div>
         <button id="themeToggle" class="icon-btn" title="Toggle Dark/Light Mode" style="color:#eab308;"><i class="fa fa-moon"></i></button>
       </div>    
@@ -93,7 +106,7 @@
 
         <div style="margin-top:8px; display: flex; gap: 8px; flex-wrap: wrap;">  
           <button id="importBtnB" class="btn btn-green" style="flex: 2;"><i class="fa fa-code"></i> Import JSON</button>  
-          <button id="demoJsonBtn" class="btn small" style="background:#14b8a6;color:#fff" title="सभी विषयों के प्रश्नों का डेमो JSON लोड करें"><i class="fa fa-magic"></i> Load Demo (Mix Subjects)</button>
+          <button id="demoJsonBtn" class="btn small" style="background:#14b8a6;color:#fff" title="सभी विषयों के प्रश्नों का डेमो JSON लोड करें"><i class="fa fa-magic"></i> Load Demo</button>
           
           <button id="clearJsonBtnB" class="btn small" style="background:#9ca3af;color:#fff"><i class="fa fa-eraser"></i> Clear</button>
           <button id="copyJsonBtnB" class="btn small" style="background:#0284c7;color:#fff"><i class="fa fa-copy"></i> Copy JSON</button>  
@@ -106,6 +119,11 @@
         <div style="margin-top:12px; display: flex; gap: 8px; flex-wrap: wrap;">
             <!-- EXPORT WORD BUTTON -->
             <button id="exportBtnB" class="btn btn-blue" style="flex: 2;"><i class="fa fa-file-word"></i> Export App DOCX (With Tags)</button>  
+            
+            <!-- MATH PREVIEW TOGGLE BUTTON -->
+            <button id="toggleMathModeBtn" class="btn small" style="background:#f59e0b; color:#fff; flex:1; border: 2px solid #b45309;">
+                <i class="fa fa-eye"></i> Math Preview Mode
+            </button>
         </div>
       </div>  
 
@@ -174,8 +192,47 @@
 (function(){
   const STORAGE_KEY = 'mockrise_mcq_data_docx_native_100';  
   let questions = []; let qCounter = 1;  
+  let isPreviewMode = false; // Math Preview State
+
   const $ = id => document.getElementById(id);  
   
+  // -- TOGGLE MATH PREVIEW MODE --
+  $('toggleMathModeBtn').addEventListener('click', () => {
+      isPreviewMode = !isPreviewMode;
+      const btn = $('toggleMathModeBtn');
+      const listContainer = $('listB');
+
+      if (isPreviewMode) {
+          // Enter Preview Mode
+          btn.innerHTML = '<i class="fa fa-edit"></i> Back to Edit Mode';
+          btn.style.background = '#10b981'; // Green color for active
+          btn.style.borderColor = '#047857';
+          listContainer.classList.add('preview-active');
+          
+          // Disable editing globally
+          document.querySelectorAll('#listB div[contenteditable="true"]').forEach(el => {
+              el.setAttribute('contenteditable', 'false');
+          });
+          document.querySelectorAll('#listB span[contenteditable="true"]').forEach(el => {
+              el.setAttribute('contenteditable', 'false');
+          });
+
+          // Run MathJax
+          if (window.MathJax && MathJax.typesetPromise) {
+              MathJax.typesetPromise([listContainer]).catch(err => console.log(err));
+          }
+      } else {
+          // Exit Preview Mode
+          btn.innerHTML = '<i class="fa fa-eye"></i> Math Preview Mode';
+          btn.style.background = '#f59e0b'; // Restore orange
+          btn.style.borderColor = '#b45309';
+          listContainer.classList.remove('preview-active');
+          
+          // Re-render list completely to clear MathJax DOM changes and restore raw text/editability
+          renderList(); 
+      }
+  });
+
   // -- NIGHT MODE --
   $('themeToggle').addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
@@ -196,6 +253,7 @@
 
   // -- SMART MATH INSERT (Cursor in the middle) --
   window.insertMath = function() {
+      if(isPreviewMode) { alert("कृपया पहले 'Back to Edit Mode' पर क्लिक करें।"); return; }
       const selection = window.getSelection();
       if (!selection.rangeCount) return;
       const range = selection.getRangeAt(0);
@@ -210,7 +268,7 @@
       selection.addRange(range);
   }
 
-  // -- CUSTOM TABLES (FIXED GAP ISSUE - Removed <br> wrappers) --
+  // -- CUSTOM TABLES --
   window.insertMatchTable = function() {
       const tableHtml = `<table width="100%" class="match-table" style="width:100%; border-collapse:collapse; border:none; margin:0px;"><tbody><tr><td width="50%" style="width:50%; vertical-align:top; border:none; padding:4px;"><b>सूची-I</b><br>1. <br>2. <br>3. </td><td width="50%" style="width:50%; vertical-align:top; border:none; padding:4px;"><b>सूची-II</b><br>a. <br>b. <br>c. </td></tr></tbody></table>`;
       document.execCommand('insertHTML', false, tableHtml);
@@ -225,7 +283,7 @@
   function isHindi(s){ return /[\u0900-\u097F]/.test(s||''); }  
   function normalizeNewlines(s){ if(s==null) return ''; return String(s).replace(/\\n/g,'\n').replace(/\/n/g,'\n'); }  
   
-  // -- UNLIMITED STORAGE WITH INDEXED DB (localforage) --
+  // -- UNLIMITED STORAGE WITH INDEXED DB --
   async function loadState(){  
     try{ 
         const raw = await localforage.getItem(STORAGE_KEY); 
@@ -299,7 +357,7 @@
       body.appendChild(enToggle);  
 
       const enBlock = document.createElement('div'); 
-      enBlock.id = `enBlock_${q.id}`; // Assigned ID for translation visibility
+      enBlock.id = `enBlock_${q.id}`; 
       enBlock.className = 'en-block';
       enBlock.style.display = (q.questionEn || (q.optionEn && q.optionEn.some(x=>x))) ? 'block' : 'none';  
       enBlock.style.background = 'var(--panel-bg)'; enBlock.style.padding = '10px'; enBlock.style.marginTop = '8px'; enBlock.style.borderRadius = '6px'; enBlock.style.border = '1px solid var(--border)';
@@ -353,7 +411,7 @@
   function undoQ(id){ const q = questions.find(x=>x.id===id); if(!q || !q.history || q.history.length<=1){ alert('No undo'); return; } const cur = q.history.pop(); q.redo = q.redo || []; q.redo.push(cur); const prev = q.history[q.history.length-1]; const obj = JSON.parse(prev); Object.assign(q, obj); saveState(); renderList(); }  
   function redoQ(id){ const q = questions.find(x=>x.id===id); if(!q || !q.redo || q.redo.length===0){ alert('No redo'); return; } const snap = q.redo.pop(); q.history.push(snap); const obj = JSON.parse(snap); Object.assign(q,obj); saveState(); renderList(); }  
   
-  /* ---------------- Translate (User's Exact Logic + HTML Safe Wrapper) ---------------- */  
+  /* ---------------- Translate ---------------- */  
   async function translateTextRaw(text, sl='auto', tl='en'){  
     if(!text) return '';  
     try{  
@@ -366,7 +424,6 @@
     }catch(e){ console.warn(e); return ''; }  
   }  
 
-  // Wrapper to protect HTML structure while using the above translateText logic
   async function translateText(htmlStr, sl='hi', tl='en') {
       if(!htmlStr) return '';
       const tempDiv = document.createElement('div');
@@ -383,13 +440,13 @@
 
       for (let i = 0; i < textNodes.length; i++) {
           textNodes[i].nodeValue = await translateTextRaw(textNodes[i].nodeValue, sl, tl);
-          await new Promise(r => setTimeout(r, 200)); // Small delay to avoid API block
+          await new Promise(r => setTimeout(r, 200)); 
       }
       return tempDiv.innerHTML;
   }
   
-  /* Translate one question (HI -> EN) */  
   async function translateQuestion(id){  
+    if(isPreviewMode) { alert("कृपया पहले 'Back to Edit Mode' पर क्लिक करें।"); return; }
     const q = questions.find(x=>x.id===id); if(!q) return;  
     const btn = $(`transBtn_${id}`);
     if(btn) btn.innerHTML = `<i class="fa fa-spinner fa-spin"></i>`;
@@ -414,19 +471,18 @@
     q.solutionEn = await translateText(q.solution||'','hi','en');  
     pushHistory(q); saveState(); renderList(); 
 
-    // Translation Visibility Highlight
     setTimeout(() => {
         const enBlock = document.getElementById(`enBlock_${id}`);
         if(enBlock) {
-            enBlock.style.display = 'block'; // Make it visible
-            enBlock.style.boxShadow = '0 0 12px #10b981'; // Green Glow
+            enBlock.style.display = 'block'; 
+            enBlock.style.boxShadow = '0 0 12px #10b981'; 
             setTimeout(() => { enBlock.style.boxShadow = 'none'; }, 2000);
         }
     }, 100);
   }  
     
-  /* Translate all questions where applicable */  
   $('translateAllBtn').addEventListener('click', async ()=>{  
+    if(isPreviewMode) { alert("कृपया पहले 'Back to Edit Mode' पर क्लिक करें।"); return; }
     const btn = $('translateAllBtn');
     btn.innerHTML = `<i class="fa fa-spinner fa-spin"></i> Translating...`;
     btn.disabled = true;
@@ -455,11 +511,10 @@
     btn.innerHTML = `<i class="fa fa-language"></i> Translate All`;
     btn.disabled = false;
     
-    // Highlight all translated English blocks to show it happened
     setTimeout(() => {
         document.querySelectorAll('.en-block').forEach(b => {
             b.style.display = 'block';
-            b.style.boxShadow = '0 0 12px #8b5cf6'; // Purple Glow
+            b.style.boxShadow = '0 0 12px #8b5cf6'; 
             setTimeout(() => b.style.boxShadow = 'none', 2000);
         });
     }, 100);
@@ -469,18 +524,15 @@
   
   $('clearJsonBtnB').addEventListener('click', ()=>{ $('jsonAreaB').value = ''; });
   
-  // -- DEMO JSON BUTTON (REMOVED NUMBERS & TYPES, ADDED ALL SUBJECTS) --
+  // -- DEMO JSON BUTTON --
   $('demoJsonBtn').addEventListener('click', ()=>{
       const demoData = [
           { "module": "GK", "question": "राजस्थान की राजधानी क्या है?", "option": ["जयपुर", "जोधपुर", "उदयपुर", "कोटा"], "answer": "A", "solution": "जयपुर राजस्थान की राजधानी है।", "language": "hi" },
-          { "module": "History", "question": "नीचे दो कथन दिए गए हैं।<br><b>कथन (A):</b> जयपुर को गुलाबी नगर कहा जाता है।<br><b>कारण (R):</b> यहाँ की अधिकांश पुरानी इमारतें गुलाबी रंग की हैं。", "option": ["(A) A और R दोनों सही हैं तथा R, A की सही व्याख्या करता है", "(B) A और R दोनों सही हैं, पर R, A की सही व्याख्या नहीं करता", "(C) A सही है, R गलत है", "(D) A गलत है, R सही है"], "answer": "A", "solution": "सवाई रामसिंह द्वितीय ने जयपुर को गुलाबी रंग से रँगवाया था।", "language": "hi" },
           { "module": "Maths", "question": "यदि \\( x^2 - 4 = 0 \\) है, तो \\( x \\) का मान क्या होगा?", "option": ["2 और -2", "केवल 2", "4", "0"], "answer": "A", "solution": "समीकरण \\( x^2 = 4 \\) को हल करने पर \\( x = 2 \\) या \\( x = -2 \\) प्राप्त होता है।", "language": "hi" },
-          { "module": "Hindi", "question": "'कमल' का पर्यायवाची शब्द निम्न में से कौन-सा है?", "option": ["जलज", "नीरज", "पंकज", "उपरोक्त सभी"], "answer": "D", "solution": "जलज, नीरज, और पंकज तीनों कमल के पर्यायवाची हैं।", "language": "hi" },
-          { "module": "Science", "question": "सूची-I को सूची-II से सुमेलित करें:<table width=\"100%\" class=\"match-table\" style=\"width:100%; border-collapse:collapse; border:none; margin:0px;\"><tbody><tr><td width=\"50%\" style=\"width:50%; vertical-align:top; border:none; padding:4px;\"><b>सूची-I (विटामिन)</b><br>1. विटामिन A<br>2. विटामिन C</td><td width=\"50%\" style=\"width:50%; vertical-align:top; border:none; padding:4px;\"><b>सूची-II (कमी से रोग)</b><br>a. स्कर्वी<br>b. रतौंधी</td></tr></tbody></table><b>कूट:</b>", "option": ["1-b, 2-a", "1-a, 2-b", "1-a, 2-a", "1-b, 2-b"], "answer": "A", "solution": "विटामिन A की कमी से रतौंधी (b) और C की कमी से स्कर्वी (a) होता है।", "language": "hi" },
-          { "module": "English", "question": "What is the synonym of 'Beautiful'?", "option": ["Ugly", "Pretty", "Bad", "Sad"], "answer": "B", "solution": "Pretty means beautiful.", "language": "en" }
+          { "module": "Science", "question": "त्रिकोणमिति में \\( \\sin^2 \\theta + \\cos^2 \\theta \\) का मान क्या होता है?", "option": ["\\( 0 \\)", "\\( 1 \\)", "\\( -1 \\)", "\\( \\tan^2 \\theta \\)"], "answer": "B", "solution": "मूलभूत सर्वसमिका के अनुसार, \\( \\sin^2 \\theta + \\cos^2 \\theta = 1 \\) होता है।", "language": "hi" }
       ];
       $('jsonAreaB').value = JSON.stringify(demoData, null, 2);
-      alert('डेमो JSON बॉक्स में भर दिया गया है। इसमें सभी विषयों के प्रश्न बिना नंबर (1, 2, 3) के दिए गए हैं। अब "Import JSON" बटन दबाएँ।');
+      alert('डेमो JSON बॉक्स में भर दिया गया है। अब "Import JSON" बटन दबाएँ।');
   });
 
   // -- IMPORT JSON --
@@ -508,8 +560,9 @@
     saveState(); renderList(); $('jsonAreaB').value = ''; alert(`Successfully imported ${addedCount} new question(s)!`); 
   });  
 
-  // -- COPY JSON TO CLIPBOARD --
+  // -- COPY JSON --
   $('copyJsonBtnB').addEventListener('click', ()=>{
+      if(isPreviewMode) { alert("कृपया पहले 'Back to Edit Mode' पर क्लिक करें ताकि ओरिजिनल कोड कॉपी हो सके।"); return; }
       if(!questions.length){ alert("Copy करने के लिए कोई डेटा नहीं है!"); return; }
       const out = questions.map(q=>({ 
           module:q.module, question:q.question, 
@@ -520,13 +573,12 @@
       }));
       navigator.clipboard.writeText(JSON.stringify(out, null, 2)).then(() => {
           alert('✅ JSON सफलता पूर्वक कॉपी हो गया!');
-      }).catch(err => {
-          alert('Copy failed: ' + err);
-      });
+      }).catch(err => { alert('Copy failed: ' + err); });
   });
 
   // -- EXPORT JSON --
   $('exportJsonB').addEventListener('click', ()=>{ 
+    if(isPreviewMode) { alert("कृपया पहले 'Back to Edit Mode' पर क्लिक करें।"); return; }
     if(!questions.length){ alert("Nothing to export"); return; } 
     const out = questions.map(q=>({ 
         module:q.module, question:q.question, 
@@ -539,7 +591,7 @@
   });  
 
   // ==========================================
-  // PERFECT DOCX EXPORT (ZERO GAP FIX + DYNAMIC LANG TAGS)
+  // PERFECT DOCX EXPORT
   // ==========================================
   function convertHtmlToOpenXml(htmlString) {
       if (!htmlString) return '';
@@ -616,7 +668,6 @@
 
       div.childNodes.forEach(child => { xml += processNode(child, {b:false, i:false, u:false}); });
       xml += '</w:p>';
-      // Clean up empty paragraphs to prevent gaps
       xml = xml.replace(/<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"\/><\/w:pPr><\/w:p>/g, ''); 
       return xml;
   }
@@ -629,6 +680,7 @@
   }
 
   $('exportBtnB').addEventListener('click', ()=>{ 
+      if(isPreviewMode) { alert("कृपया पहले 'Back to Edit Mode' पर क्लिक करें।"); return; }
       if(!questions.length){ alert('पहले प्रश्न इम्पोर्ट करें!'); return; }
       
       const btn = $('exportBtnB');
@@ -649,7 +701,6 @@
           const isHi = isHindi(q.question);
           const primaryDirectionTag = isHi ? `#Hindi_directions` : `#English_directions`;
 
-          // If English translation is available and the primary is Hindi, export the English first
           if (hasEnglish && isHi) {
               body += makeDocxParagraph(`#English_directions`, true);
               body += makeDocxParagraph(`#Question ${index + 1}`, true);
@@ -669,10 +720,9 @@
               body += convertHtmlToOpenXml(q.solutionEn || q.solution);
               body += makeDocxParagraph(`#tags`, true);
               body += makeDocxParagraph(mod);
-              body += makeDocxParagraph(''); // spacing
+              body += makeDocxParagraph(''); 
           }
 
-          // Export the Primary Language Block with dynamic direction tag
           body += makeDocxParagraph(primaryDirectionTag, true);
           body += makeDocxParagraph(`#Question ${index + 1}`, true);
           body += convertHtmlToOpenXml(q.question);
