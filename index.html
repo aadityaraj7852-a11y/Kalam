@@ -14,6 +14,19 @@
   <!-- LocalForage (IndexedDB for UNLIMITED Auto-Save Data) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
+  <!-- MathJax for LaTeX Support -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']] },
+      options: {
+        // Ignored class ensures MathJax does not corrupt the raw editable text
+        ignoreHtmlClass: 'editable-ignore', 
+        processHtmlClass: 'math-preview'
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
   <style>
     /* Light Theme */
     body { margin: 0; padding: 0; background: #f3f4f6; font-family: 'Poppins', sans-serif; transition: background 0.3s, color 0.3s; }
@@ -67,9 +80,12 @@
     /* Match Table (Side-by-side) Styling */
     .match-table { width: 100%; border: none !important; border-collapse: collapse; margin-top: 0px; margin-bottom: 0px;}
     .match-table td { border: none !important; width: 50%; vertical-align: top; padding: 4px; }
+    
+    /* Animation for English Box visibility */
+    .en-block { transition: box-shadow 0.5s ease-in-out; }
   </style>
 </head>
-<body>
+<body class="editable-ignore"> <!-- editable-ignore prevents MathJax from corrupting the whole page HTML automatically -->
 
 <div id="containerB">
     <div class="main-wrapper">  
@@ -78,7 +94,7 @@
       <div class="toolbar">  
         <div>
           <div class="title">Mockrise - MCQ Editor Pro</div>  
-          <div class="muted" style="font-size: 11px;">Dynamic Lang Tags · Zero Gap Fix · Custom Translate</div>  
+          <div class="muted" style="font-size: 11px;">Dynamic Lang Tags · LaTeX Math Support · Clear Translation</div>  
         </div>
         <button id="themeToggle" class="icon-btn" title="Toggle Dark/Light Mode" style="color:#eab308;"><i class="fa fa-moon"></i></button>
       </div>    
@@ -90,7 +106,7 @@
 
         <div style="margin-top:8px; display: flex; gap: 8px; flex-wrap: wrap;">  
           <button id="importBtnB" class="btn btn-green" style="flex: 2;"><i class="fa fa-code"></i> Import JSON</button>  
-          <button id="demoJsonBtn" class="btn small" style="background:#14b8a6;color:#fff" title="सभी 6 प्रकार के प्रश्नों का डेमो JSON लोड करें"><i class="fa fa-magic"></i> Load Demo 6-Types</button>
+          <button id="demoJsonBtn" class="btn small" style="background:#14b8a6;color:#fff" title="सभी विषयों के प्रश्नों का डेमो JSON लोड करें"><i class="fa fa-magic"></i> Load Demo (Mix Subjects)</button>
           
           <button id="clearJsonBtnB" class="btn small" style="background:#9ca3af;color:#fff"><i class="fa fa-eraser"></i> Clear</button>
           <button id="copyJsonBtnB" class="btn small" style="background:#0284c7;color:#fff"><i class="fa fa-copy"></i> Copy JSON</button>  
@@ -136,6 +152,9 @@
 
           <button class="btn small" style="background:#fff; color:#111; border:1px solid #ccc;" onclick="document.execCommand('insertHTML', false, '<br>')" title="Force Line Break"><b>↵ Break</b></button>
           
+          <!-- MATH / LATEX BUTTON -->
+          <button class="btn small" style="background:#fef3c7; color:#b45309; border:1px solid #fcd34d;" onclick="insertMath()" title="Insert Math / LaTeX Equation"><b>∑ Math</b></button>
+
           <div class="dropdown-hover" style="margin-left: auto;">
               <div id="totalQBtn" class="number-badge" style="cursor:pointer; display:flex; align-items:center; gap:5px;">
                   Total: 0 <i class="fa fa-caret-down"></i>
@@ -187,6 +206,12 @@
           card.style.display = text.includes(term) ? "block" : "none";
       });
   });
+
+  // -- MATH INSERT --
+  window.insertMath = function() {
+      // Inserts \( \) for LaTeX block safely
+      document.execCommand('insertText', false, '\\(  \\)');
+  }
 
   // -- CUSTOM TABLES (FIXED GAP ISSUE - Removed <br> wrappers) --
   window.insertMatchTable = function() {
@@ -277,6 +302,8 @@
       body.appendChild(enToggle);  
 
       const enBlock = document.createElement('div'); 
+      enBlock.id = `enBlock_${q.id}`; // Assigned ID for translation visibility
+      enBlock.className = 'en-block';
       enBlock.style.display = (q.questionEn || (q.optionEn && q.optionEn.some(x=>x))) ? 'block' : 'none';  
       enBlock.style.background = 'var(--panel-bg)'; enBlock.style.padding = '10px'; enBlock.style.marginTop = '8px'; enBlock.style.borderRadius = '6px'; enBlock.style.border = '1px solid var(--border)';
 
@@ -388,7 +415,17 @@
     q.optionEn = [];  
     for(let i=0;i<4;i++) q.optionEn[i] = await translateText(q.option[i]||'','hi','en');  
     q.solutionEn = await translateText(q.solution||'','hi','en');  
-    pushHistory(q); saveState(); renderList(); alert('Translated (HI→EN)');  
+    pushHistory(q); saveState(); renderList(); 
+
+    // Translation Visibility Highlight
+    setTimeout(() => {
+        const enBlock = document.getElementById(`enBlock_${id}`);
+        if(enBlock) {
+            enBlock.style.display = 'block'; // Make it visible
+            enBlock.style.boxShadow = '0 0 12px #10b981'; // Green Glow
+            setTimeout(() => { enBlock.style.boxShadow = 'none'; }, 2000);
+        }
+    }, 100);
   }  
     
   /* Translate all questions where applicable */  
@@ -420,24 +457,33 @@
     saveState(); renderList(); 
     btn.innerHTML = `<i class="fa fa-language"></i> Translate All`;
     btn.disabled = false;
+    
+    // Highlight all translated English blocks to show it happened
+    setTimeout(() => {
+        document.querySelectorAll('.en-block').forEach(b => {
+            b.style.display = 'block';
+            b.style.boxShadow = '0 0 12px #8b5cf6'; // Purple Glow
+            setTimeout(() => b.style.boxShadow = 'none', 2000);
+        });
+    }, 100);
+    
     alert('Processed ' + count + ' questions.');  
   });
   
   $('clearJsonBtnB').addEventListener('click', ()=>{ $('jsonAreaB').value = ''; });
   
-  // -- DEMO JSON BUTTON (FIXED DOUBLE <br>) --
+  // -- DEMO JSON BUTTON (REMOVED NUMBERS & TYPES, ADDED ALL SUBJECTS) --
   $('demoJsonBtn').addEventListener('click', ()=>{
       const demoData = [
-          { "module": "Demo (6 Types)", "question": "<b>1. वस्तुनिष्ठ प्रश्न:</b> राजस्थान की राजधानी क्या है?", "option": ["जयपुर", "जोधपुर", "उदयपुर", "कोटा"], "answer": "A", "solution": "स्पष्ट जानकारी: जयपुर राजस्थान की राजधानी है।", "language": "hi" },
-          { "module": "Demo (6 Types)", "question": "<b>2. कथन-कारण प्रश्न:</b> नीचे दो कथन दिए गए हैं।<br><b>कथन (A):</b> जयपुर को गुलाबी नगर कहा जाता है।<br><b>कारण (R):</b> यहाँ की अधिकांश पुरानी इमारतें गुलाबी रंग की हैं。", "option": ["(A) A और R दोनों सही हैं तथा R, A की सही व्याख्या करता है", "(B) A और R दोनों सही हैं, पर R, A की सही व्याख्या नहीं करता", "(C) A सही है, R गलत है", "(D) A गलत है, R सही है"], "answer": "A", "solution": "स्पष्ट जानकारी: सवाई रामसिंह द्वितीय ने जयपुर को गुलाबी रंग से रँगवाया था।", "language": "hi" },
-          { "module": "Demo (6 Types)", "question": "<b>3. दो कथन आधारित:</b> निम्न कथनों पर विचार करें:<br><b>कथन-I:</b> हल्दीघाटी का युद्ध 1576 में हुआ था।<br><b>कथन-II:</b> यह युद्ध महाराणा प्रताप और अकबर के बीच लड़ा गया था।", "option": ["(A) कथन-I सही, कथन-II गलत", "(B) कथन-I गलत, कथन-II सही", "(C) दोनों कथन सही", "(D) दोनों कथन गलत"], "answer": "C", "solution": "स्पष्ट जानकारी: 18 जून 1576 को यह युद्ध हुआ था। दोनों कथन पूर्णतः सत्य हैं।", "language": "hi" },
-          { "module": "Demo (6 Types)", "question": "<b>4. मिलान आधारित:</b> सूची-I को सूची-II से सुमेलित करें:<table width=\"100%\" border=\"1\" style=\"width:100%; border-collapse:collapse; margin:0px; border:1px solid #ccc;\"><tbody><tr><td style=\"padding:5px;\"><b>सूची-I (झील)</b></td><td style=\"padding:5px;\"><b>सूची-II (ज़िला)</b></td></tr><tr><td style=\"padding:5px;\">1. नक्की</td><td style=\"padding:5px;\">a. अजमेर</td></tr><tr><td style=\"padding:5px;\">2. आनासागर</td><td style=\"padding:5px;\">b. सिरोही</td></tr></tbody></table><b>कूट:</b>", "option": ["1-b, 2-a", "1-a, 2-b", "1-a, 2-a", "1-b, 2-b"], "answer": "A", "solution": "स्पष्ट जानकारी: नक्की झील सिरोही (माउंट आबू) में और आनासागर अजमेर में है।", "language": "hi" },
-          { "module": "Demo (6 Types)", "question": "<b>5. गलत विकल्प पहचानें:</b> निम्न में से कौन-सा कथन <b>असत्य</b> है?", "option": ["राजस्थान का राज्य पक्षी गोडावण है।", "राजस्थान का राज्य वृक्ष खेजड़ी है।", "राजस्थान का राज्य पशु ऊँट और चिंकारा हैं।", "राजस्थान का राज्य पुष्प कमल है।"], "answer": "D", "solution": "स्पष्ट जानकारी: राजस्थान का राज्य पुष्प <b>रोहिड़ा</b> है, कमल नहीं।", "language": "hi" },
-          { "module": "Demo (6 Types)", "question": "<b>6. कूट आधारित प्रश्न:</b> राजस्थान के बारे में सही कथन चुनें:<br>1. यह भारत का सबसे बड़ा राज्य है।<br>2. यहाँ थार मरुस्थल स्थित है。<br>3. इसकी अंतर्राष्ट्रीय सीमा नेपाल से लगती है。<br><b>कूट:</b>", "option": ["केवल 1 और 2", "केवल 2 और 3", "केवल 1 और 3", "1, 2 और 3"], "answer": "A", "solution": "स्पष्ट जानकारी: राजस्थान की सीमा पाकिस्तान (अंतरराष्ट्रीय) से लगती है, नेपाल से नहीं। अतः कथन 3 गलत है।", "language": "hi" },
-          { "module": "English Module", "question": "What is the synonym of 'Beautiful'?", "option": ["Ugly", "Pretty", "Bad", "Sad"], "answer": "B", "solution": "Pretty means beautiful.", "language": "en" }
+          { "module": "GK", "question": "राजस्थान की राजधानी क्या है?", "option": ["जयपुर", "जोधपुर", "उदयपुर", "कोटा"], "answer": "A", "solution": "जयपुर राजस्थान की राजधानी है।", "language": "hi" },
+          { "module": "History", "question": "नीचे दो कथन दिए गए हैं।<br><b>कथन (A):</b> जयपुर को गुलाबी नगर कहा जाता है।<br><b>कारण (R):</b> यहाँ की अधिकांश पुरानी इमारतें गुलाबी रंग की हैं。", "option": ["(A) A और R दोनों सही हैं तथा R, A की सही व्याख्या करता है", "(B) A और R दोनों सही हैं, पर R, A की सही व्याख्या नहीं करता", "(C) A सही है, R गलत है", "(D) A गलत है, R सही है"], "answer": "A", "solution": "सवाई रामसिंह द्वितीय ने जयपुर को गुलाबी रंग से रँगवाया था।", "language": "hi" },
+          { "module": "Maths", "question": "यदि \\( x^2 - 4 = 0 \\) है, तो \\( x \\) का मान क्या होगा?", "option": ["2 और -2", "केवल 2", "4", "0"], "answer": "A", "solution": "समीकरण \\( x^2 = 4 \\) को हल करने पर \\( x = 2 \\) या \\( x = -2 \\) प्राप्त होता है।", "language": "hi" },
+          { "module": "Hindi", "question": "'कमल' का पर्यायवाची शब्द निम्न में से कौन-सा है?", "option": ["जलज", "नीरज", "पंकज", "उपरोक्त सभी"], "answer": "D", "solution": "जलज, नीरज, और पंकज तीनों कमल के पर्यायवाची हैं।", "language": "hi" },
+          { "module": "Science", "question": "सूची-I को सूची-II से सुमेलित करें:<table width=\"100%\" class=\"match-table\" style=\"width:100%; border-collapse:collapse; border:none; margin:0px;\"><tbody><tr><td width=\"50%\" style=\"width:50%; vertical-align:top; border:none; padding:4px;\"><b>सूची-I (विटामिन)</b><br>1. विटामिन A<br>2. विटामिन C</td><td width=\"50%\" style=\"width:50%; vertical-align:top; border:none; padding:4px;\"><b>सूची-II (कमी से रोग)</b><br>a. स्कर्वी<br>b. रतौंधी</td></tr></tbody></table><b>कूट:</b>", "option": ["1-b, 2-a", "1-a, 2-b", "1-a, 2-a", "1-b, 2-b"], "answer": "A", "solution": "विटामिन A की कमी से रतौंधी (b) और C की कमी से स्कर्वी (a) होता है।", "language": "hi" },
+          { "module": "English", "question": "What is the synonym of 'Beautiful'?", "option": ["Ugly", "Pretty", "Bad", "Sad"], "answer": "B", "solution": "Pretty means beautiful.", "language": "en" }
       ];
       $('jsonAreaB').value = JSON.stringify(demoData, null, 2);
-      alert('डेमो JSON बॉक्स में भर दिया गया है। अब "Import JSON" बटन दबाएँ।');
+      alert('डेमो JSON बॉक्स में भर दिया गया है। इसमें सभी विषयों के प्रश्न बिना नंबर (1, 2, 3) के दिए गए हैं। अब "Import JSON" बटन दबाएँ।');
   });
 
   // -- IMPORT JSON --
@@ -496,7 +542,7 @@
   });  
 
   // ==========================================
-  // PERFECT DOCX EXPORT (ZERO GAP FIX + DYNAMIC LANG TAGS)
+  // PERFECT DOCX EXPORT (ZERO GAP FIX + DYNAMIC LANG TAGS + PRESERVES LATEX)
   // ==========================================
   function convertHtmlToOpenXml(htmlString) {
       if (!htmlString) return '';
